@@ -28,10 +28,10 @@ eagerParser :: Parser EvaluationStrategy
 eagerParser = flag Lazy Eager (long "eager" <> short 'e' <> help "Use eager evaluation strategy instead of lazy (the default).")
 
 fileParser :: Parser String
-fileParser = argument str (metavar "FILE")
+fileParser = argument str (metavar "FILE" <> help "Program to execute")
 
 argsParser :: Parser [String]
-argsParser = many $ argument str (metavar "ARGS...")
+argsParser = many $ argument str (metavar "ARGS..." <> help "Optional space-separated list of lambda terms to apply the program to")
 
 optionsParser :: Parser Options
 optionsParser = Options <$> eagerParser <*> fileParser <*> argsParser
