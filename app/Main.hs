@@ -6,12 +6,9 @@ import Parser(parse)
 import Ast
 import Interpreter
 
-import System.Environment(getArgs)
 import System.Directory(doesFileExist)
-import System.Exit(exitFailure, exitSuccess)
+import System.Exit(exitFailure)
 import Options.Applicative
-
-import Data.List(isPrefixOf)
 
 import Control.Monad(when)
 
