@@ -5,13 +5,13 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           lambda-calculus
-version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/lambda-calculus#readme>
-homepage:       https://github.com/githubuser/lambda-calculus#readme
-bug-reports:    https://github.com/githubuser/lambda-calculus/issues
-author:         Author name here
-maintainer:     example@example.com
-copyright:      2021 Author name here
+version:        1.0.0
+description:    Please see the README on GitHub at <https://github.com/maurobringolf/lambda-calculus#readme>
+homepage:       https://github.com/maurobringolf/lambda-calculus#readme
+bug-reports:    https://github.com/maurobringolf/lambda-calculus/issues
+author:         Mauro Bringolf
+maintainer:     mauro@bringolf.com
+copyright:      2021 Mauro Bringolf
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
@@ -20,7 +20,7 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/lambda-calculus
+  location: https://github.com/maurobringolf/lambda-calculus
 
 library
   exposed-modules:
@@ -32,8 +32,7 @@ library
   hs-source-dirs:
       src
   build-depends:
-      QuickCheck
-    , base >=4.7 && <5
+      base >=4.7 && <5
     , containers
     , directory
     , hspec
@@ -49,8 +48,7 @@ executable lambda-calculus-exe
       app
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      QuickCheck
-    , base >=4.7 && <5
+      base >=4.7 && <5
     , containers
     , directory
     , hspec
@@ -68,8 +66,7 @@ test-suite lambda-calculus-test
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      QuickCheck
-    , base >=4.7 && <5
+      base >=4.7 && <5
     , containers
     , directory
     , hspec

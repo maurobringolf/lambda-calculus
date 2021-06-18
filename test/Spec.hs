@@ -1,5 +1,4 @@
 import Test.Hspec
-import Test.QuickCheck
 
 import Interpreter
 import Parser
