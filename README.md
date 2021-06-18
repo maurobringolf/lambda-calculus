@@ -1,5 +1,7 @@
 # Lambda Calculus
 
+[![test](https://github.com/maurobringolf/lambda-calculus/actions/workflows/test.yml/badge.svg)](https://github.com/maurobringolf/lambda-calculus/actions/workflows/test.yml)
+
 An interpreter for the untyped lambda calculus.
 
 ```raw
