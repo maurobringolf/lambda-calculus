@@ -1,42 +1,52 @@
+{-# LANGUAGE NamedFieldPuns #-}
+
 module Main where
 
-import Parser
+import Parser(parse)
 import Ast
 import Interpreter
 
 import System.Environment(getArgs)
 import System.Directory(doesFileExist)
 import System.Exit(exitFailure, exitSuccess)
+import Options.Applicative
 
 import Data.List(isPrefixOf)
 
-printUsage :: IO ()
-printUsage = putStrLn "Usage: lc [--version] [--eager] PROGRAM [ARGS]"
+import Control.Monad(when)
 
-printVersion :: IO ()
-printVersion = putStrLn "lc 1.0.0"
+data Options = Options { evaluationStrategy :: EvaluationStrategy
+                       , file :: String
+                       , arguments :: [String]
+                       }
 
-optionList :: [String]
-optionList = ["version", "eager"]
+
+version :: Parser (a -> a)
+version = infoOption "lc v1.0.0" (long "version" <> short 'v' <> help "Print version and exit.")
+
+eagerParser :: Parser EvaluationStrategy
+eagerParser = flag Lazy Eager (long "eager" <> short 'e' <> help "Use eager evaluation strategy instead of lazy (the default).")
+
+fileParser :: Parser String
+fileParser = argument str (metavar "FILE")
+
+argsParser :: Parser [String]
+argsParser = many $ argument str (metavar "ARGS...")
+
+optionsParser :: Parser Options
+optionsParser = Options <$> eagerParser <*> fileParser <*> argsParser
 
 main :: IO ()
-main = do args <- getArgs
-          if length args == 0 then do
-            printUsage
+main = do
+          Options{evaluationStrategy, file, arguments} <- execParser $ (info (helper <*> version <*> optionsParser)) (fullDesc <> progDesc "" <> header "")
+
+          fileExists <- doesFileExist file
+
+          when (not fileExists) $ do
+            putStrLn $ "Cannot open file " ++ file
             exitFailure
-          else do
-            let options = [ opt | ('-':'-':opt) <- args, opt `elem` optionList ]
-            if "version" `elem` options then do
-              printVersion
-              exitSuccess
-            else do
-              let interpreter = if "eager" `elem` options then eagerEval else lazyEval
-                  fileName:arguments = filter (not . isPrefixOf "--") args
-              fileExists <- doesFileExist fileName
-              if not fileExists then do
-                putStrLn $ "Cannot open file: " ++ fileName
-              else do
-                source <- readFile fileName
-                let program = parse source
-                    res = interpreter (foldl App program (map parse arguments))
-                putStrLn $ show res
+
+          source <- readFile file
+          let program = parse source
+              res = eval evaluationStrategy $ foldl App program $ map parse arguments
+          putStrLn $ show res

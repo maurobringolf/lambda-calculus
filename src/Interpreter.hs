@@ -22,3 +22,9 @@ eagerEval (App t1 t2) = let t2' = eagerEval t2 in case eagerEval t1 of
 eagerEval (Abs x t) = Abs x (eagerEval t)
 eagerEval v = v
 
+data EvaluationStrategy = Lazy | Eager
+
+eval :: EvaluationStrategy -> Term -> Term
+eval s = case s of
+  Eager -> eagerEval
+  Lazy -> lazyEval

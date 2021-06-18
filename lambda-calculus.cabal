@@ -37,6 +37,7 @@ library
     , containers
     , directory
     , hspec
+    , optparse-applicative
     , parsec
   default-language: Haskell2010
 
@@ -54,6 +55,7 @@ executable lambda-calculus-exe
     , directory
     , hspec
     , lambda-calculus
+    , optparse-applicative
     , parsec
   default-language: Haskell2010
 
@@ -72,5 +74,6 @@ test-suite lambda-calculus-test
     , directory
     , hspec
     , lambda-calculus
+    , optparse-applicative
     , parsec
   default-language: Haskell2010

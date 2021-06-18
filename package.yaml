@@ -25,6 +25,7 @@ dependencies:
 - hspec
 - QuickCheck
 - directory
+- optparse-applicative
 
 library:
   source-dirs: src
