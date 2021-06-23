@@ -27,6 +27,8 @@ library
       Ast
       Interpreter
       Parser
+      SyntaxSugar.Ast
+      SyntaxSugar.Parser
   other-modules:
       Paths_lambda_calculus
   hs-source-dirs:
@@ -61,6 +63,7 @@ test-suite lambda-calculus-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      SyntaxSugarSpec
       Paths_lambda_calculus
   hs-source-dirs:
       test
