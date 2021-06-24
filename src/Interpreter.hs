@@ -7,10 +7,19 @@ import Parser
 lazyEvalInterp :: [Variable] -> Term -> Term
 lazyEvalInterp fs (App t1 t2) = case lazyEvalInterp fs t1 of
   (Abs x t1') -> lazyEvalInterp fs (subst x t1' t2)
-  (Var f) -> if f `elem` fs then App (Var f) (lazyEvalInterp fs t2)
-             else App t1 t2
-  t1'         -> App t1' t2
+--  (Var f) -> if f `elem` fs then App (Var f) (lazyEvalInterp fs t2)
+ --            else App t1 t2
+--  t1'         -> App t1' t2
+  t1' -> if shouldBeEvaluatedUnder t1' fs then App t1' (lazyEvalInterp fs t2)
+         else App t1' t2
 lazyEvalInterp fs t = t
+
+-- TODO: Note sure what the best thing to do here is
+shouldBeEvaluatedUnder :: Term -> [String] -> Bool
+shouldBeEvaluatedUnder e fs = case e of
+  (Var f) -> f `elem` fs
+  (App t1 t2) -> shouldBeEvaluatedUnder t1 fs || shouldBeEvaluatedUnder t2 fs
+  (Abs _ t) -> False
 
 lazyEval :: Term -> Term
 lazyEval = lazyEvalInterp []

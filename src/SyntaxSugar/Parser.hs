@@ -15,12 +15,12 @@ lexer = P.makeTokenParser emptyDef{ commentStart = "--"
                                   , commentEnd = "\n"
                                   , identStart = letter
                                   , identLetter = alphaNum
-                                  , opStart = oneOf "*+-:"
-                                  , opLetter = oneOf "*+-:"
-                                  , reservedOpNames = ["+", "*", "-"]
+                                  , opStart = oneOf "*+-=<>"
+                                  , opLetter = oneOf "*+-=<>"
+                                  , reservedOpNames = ["+", "*", "-", "==", "<=", ">="]
                                   , reservedNames = ["true", "false", "nop",
                                                       "if", "then", "else", "fi",
-                                                      "while", "do", "od"]
+                                                      "while", "do", "od", "True", "False"]
                                   }
 
 P.TokenParser{ P.parens = m_parens
@@ -34,13 +34,22 @@ P.TokenParser{ P.parens = m_parens
              , P.whiteSpace = m_whiteSpace } = lexer
 
 parseExp :: Parser Exp
-parseExp = parseLambda
+parseExp = parseLambda <|> parseIfElse
+
+parseIfElse :: Parser Exp
+parseIfElse = do m_reservedOp "if"
+                 b <- parseExp
+                 m_reservedOp "then"
+                 e1 <- parseExp
+                 m_reservedOp "else"
+                 e2 <- parseExp
+                 return $ IfElse b e1 e2
 
 parseLambda' :: Parser Exp
 parseLambda' = do m_symbol "\\"
                   boundVar <- m_identifier
                   m_symbol "->"
-                  body <- parseLambda
+                  body <- parseExp
                   return $ Abs boundVar body
 
 parseLambda :: Parser Exp
@@ -52,7 +61,10 @@ parseApp = do xs <- many1 $ parseAtom
               return $ foldl1 App xs
 
 parseAtom :: Parser Exp
-parseAtom = parseNum <|> parseVar <|> m_parens parseExp
+parseAtom = parseBool <|> parseNum <|> parseVar <|> m_parens parseExp
+
+parseBool :: Parser Exp
+parseBool = (m_reserved "True" >> return (Boolean True)) <|> (m_reserved "False" >> return (Boolean False))
 
 parseVar :: Parser Exp
 parseVar = do x <- m_identifier
@@ -68,6 +80,9 @@ parseOp' = buildExpressionParser table parseApp <?> "expression"
 table = [
           [ Infix (m_reservedOp "*" >> return (\l -> \r ->(App (App Mult l) r)))  AssocRight]
         , [ Infix (m_reservedOp "+" >> return (\l -> \r ->(App (App Add l) r)))  AssocLeft, Infix (m_reservedOp "-" >> return (\l -> \r ->(App (App Sub l) r)))  AssocLeft]
+        , [ Infix (m_reservedOp "==" >> return (\l -> \r ->(App (App Eq l) r)))  AssocNone, Infix (m_reservedOp "<=" >> return (\l -> \r ->(App (App Leq l) r)))  AssocNone, Infix (m_reservedOp ">=" >> return (\l -> \r ->(App (App Geq l) r)))  AssocNone]
+        , [ Infix (m_reservedOp "&&" >> return (\l -> \r ->(App (App And l) r))) AssocRight]
+        , [ Infix (m_reservedOp "||" >> return (\l -> \r ->(App (App Or l) r))) AssocRight]
         ]
 
 parse :: String -> Program
