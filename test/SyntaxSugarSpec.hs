@@ -36,7 +36,7 @@ main = do
         (exec . parse) multiline `shouldBe` (4::Integer)
 
       it "programs/fac.hs" $ do
-        (exec . parse) fac `shouldBe` (2::Integer)
+        (exec . parse) fac `shouldBe` (6::Integer)
 
       it "programs/ifelse.hs" $ do
         (exec . parse) ifelse `shouldBe` (9::Integer)

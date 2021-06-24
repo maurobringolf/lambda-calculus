@@ -50,13 +50,15 @@ compile e = case e of
   (SS.Boolean b) -> repLC b
   (SS.IfElse b e1 e2) -> App (App (compile b) (compile e1)) (compile e2)
 
-  e -> error $ show e
-
 churchAdd :: Term
-churchAdd = parse "(λm.λn.λS.λZ.m S (n S Z))"
+churchAdd = parse churchAdd'
+
+churchAdd' :: String
+churchAdd' = "(λm.λn.λS.λZ.m S (n S Z))"
+
 
 churchMult :: Term
-churchMult = parse "(λm.λn.λS.λZ.m (n S) Z)"
+churchMult = parse ("(λm.λn.m (" ++ churchAdd' ++ " n) " ++ show (repLC (0::Integer)) ++ ")")
 
 churchPred :: Term
 churchPred = parse churchPred'
@@ -120,7 +122,7 @@ class RepresentableLC a where
 
 instance RepresentableLC Integer where
   repLC n = Abs "S" (Abs "Z" (foldr (\_ m -> (App (Var "S")) m) (Var "Z") [1..n]))
-  evalRep = absLC . Interpreter.eval (Interpreter.LazyWithInterpretedSymbols ["S", "Z"]) . (\t -> App (App t (Var "S")) (Var "Z"))
+  evalRep = absLC . Interpreter.eval (Interpreter.LazyWithInterpretedSymbols ["S", "Z"]) . (\t -> (App (App t (Var "S")) (Var "Z")))
 
   absLC (Var "Z") = 0
   absLC (App (Var "S") t) = 1 + absLC t
