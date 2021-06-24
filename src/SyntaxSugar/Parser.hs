@@ -6,8 +6,10 @@ import qualified Text.ParserCombinators.Parsec.Token as P
 import Text.ParserCombinators.Parsec.Language
 import Text.ParserCombinators.Parsec.Expr(buildExpressionParser, Assoc(..), Operator(..))
 import Text.ParserCombinators.Parsec.Prim(Parser, (<|>), (<?>), parse, try)
-import Text.ParserCombinators.Parsec.Combinator(many1, eof)
-import Text.ParserCombinators.Parsec.Char(alphaNum, oneOf, letter)
+import Text.ParserCombinators.Parsec.Combinator(many1, eof, sepBy)
+import Text.ParserCombinators.Parsec.Char(alphaNum, oneOf, letter, newline)
+
+import Data.Char(isSpace)
 
 lexer = P.makeTokenParser emptyDef{ commentStart = "--"
                                   , commentEnd = "\n"
@@ -69,15 +71,23 @@ table = [
         ]
 
 parse :: String -> Program
-parse c = case Text.ParserCombinators.Parsec.Prim.parse (parseProgram <* eof) "" c of
-  Left err -> error (show err)
-  Right e  -> e
+parse c = let defs = splitDefs c
+           in
+  P $ map (\d -> (case Text.ParserCombinators.Parsec.Prim.parse (parseDefinition <* eof) "" d of Left err -> error (show err); Right e -> e)) defs
+
+splitDefs :: String -> [String]
+splitDefs s = let ls = filter (/= "") $ lines s
+                  indented = map (isSpace . head) ls
+                  xs = zip indented ls
+               in
+                  go xs
+               where
+                  go [] = []
+                  go ((False, line):rs) = let (same, rest) = span fst rs
+                                           in [line ++ concatMap snd same] ++ go rest
 
 parseDefinition :: Parser Definition
 parseDefinition = do id <- m_identifier
                      m_symbol "="
                      e <- parseExp
                      return $ Def id e
-
-parseProgram :: Parser Program
-parseProgram = P <$> many1 parseDefinition

@@ -28,6 +28,7 @@ library
       Interpreter
       Parser
       SyntaxSugar.Ast
+      SyntaxSugar.Compiler
       SyntaxSugar.Parser
   other-modules:
       Paths_lambda_calculus
