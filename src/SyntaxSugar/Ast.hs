@@ -17,6 +17,9 @@ data Exp = Var String
          | Sub
          | Mult
          | IfElse Exp Exp Exp
+         | List [Exp]
+         | Cons
+         | Foldr
   deriving (Show, Eq)
 
 data Definition = Def String Exp
@@ -41,6 +44,9 @@ freeVars e = case e of
   Add -> Data.Set.empty
   Or -> Data.Set.empty
   And -> Data.Set.empty
+  Cons -> Data.Set.empty
+  Foldr -> Data.Set.empty
+  List xs -> foldr Data.Set.union Data.Set.empty $ map freeVars xs
   Sub -> Data.Set.empty
   Eq -> Data.Set.empty
   Leq -> Data.Set.empty

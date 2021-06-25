@@ -9,10 +9,10 @@ import Parser
 import qualified Interpreter
 
 eval :: RepresentableLC a => SS.Exp -> a
-eval = evalRep . compile
+eval = absLC . Interpreter.lazyEval . compile
 
 exec :: RepresentableLC a => SS.Program -> a
-exec = evalRep . compileMain
+exec = absLC . Interpreter.lazyEval . compileMain
 
 compileMain :: SS.Program -> Term
 compileMain = compile . buildMain
@@ -50,12 +50,21 @@ compile e = case e of
   (SS.Boolean b) -> repLC b
   (SS.IfElse b e1 e2) -> App (App (compile b) (compile e1)) (compile e2)
 
+  (SS.List xs) -> repLC $ map compile xs
+  SS.Cons -> churchCons
+  SS.Foldr -> Abs "f" $ Abs "b" $ Abs "xs" $ (App (App (Var "xs") (Var "f")) (Var "b"))
+
+churchCons :: Term
+churchCons = parse churchCons'
+
+churchCons' :: String
+churchCons' = "(λh.λt.λc.λn.c h (t c n))"
+
 churchAdd :: Term
 churchAdd = parse churchAdd'
 
 churchAdd' :: String
 churchAdd' = "(λm.λn.λS.λZ.m S (n S Z))"
-
 
 churchMult :: Term
 churchMult = parse ("(λm.λn.m (" ++ churchAdd' ++ " n) " ++ show (repLC (0::Integer)) ++ ")")
@@ -118,19 +127,49 @@ churchBool' False = "(λa.λb.b)"
 class RepresentableLC a where
   repLC :: a -> Term
   absLC :: Term -> a
-  evalRep :: Term -> a
 
 instance RepresentableLC Integer where
   repLC n = Abs "S" (Abs "Z" (foldr (\_ m -> (App (Var "S")) m) (Var "Z") [1..n]))
-  evalRep = absLC . Interpreter.eval (Interpreter.LazyWithInterpretedSymbols ["S", "Z"]) . (\t -> (App (App t (Var "S")) (Var "Z")))
-
-  absLC (Var "Z") = 0
-  absLC (App (Var "S") t) = 1 + absLC t
-  absLC x = error $ "not a church numeral: " ++ show x
+  absLC = convert . Interpreter.eval (Interpreter.LazyWithInterpretedSymbols ["S", "Z"]) . (\t -> (App (App t (Var "S")) (Var "Z")))
+    where
+      convert (Var "Z") = 0
+      convert (App (Var "S") t) = 1 + convert t
+      convert x = error $ "not a church numeral: " ++ show x
 
 instance RepresentableLC Bool where
   repLC b = churchBool b
-  absLC (Var "True") = True
-  absLC (Var "False") = False
-  absLC x = error $ "not a church boolean: " ++ show x
-  evalRep = absLC . Interpreter.eval (Interpreter.LazyWithInterpretedSymbols ["True", "False"]) . (\t -> App (App t (Var "True")) (Var "False"))
+  absLC = convert . Interpreter.eval (Interpreter.LazyWithInterpretedSymbols ["True", "False"]) . (\t -> App (App t (Var "True")) (Var "False"))
+    where
+      convert (Var "True") = True
+      convert (Var "False") = False
+      convert x = error $ "not a church boolean: " ++ show x
+
+instance RepresentableLC Term where
+  repLC = id
+  absLC = id
+
+instance (RepresentableLC a) => RepresentableLC [a] where
+  repLC xs = Abs "c" (Abs "n" (foldr (\x a -> App (App (Var "c") (repLC x)) a) (Var "n") xs))
+  absLC = convert . Interpreter.eval (Interpreter.LazyWithInterpretedSymbols ["Cons", "Nil"]) . (\t -> App (App t (Var "Cons")) (Var "Nil"))
+    where
+      convert ts = case ts of
+        (Var "Nil") -> []
+        (App (App (Var "Cons") h) t) -> absLC h : convert (Interpreter.lazyEval t)
+        e -> error $ "Not a church list: " ++ show e
+  {-
+  repLC [] = Abs "s" $ repLC True
+  repLC (x:xs) = Abs "s" $ App (App (Var "s") (repLC x)) (repLC xs)
+
+
+  absLC t = let isEmptyLC = Abs "l" $ App (Var "l") (Abs "h" $ Abs "t" $ repLC False)
+                headLC = Abs "l" $ App (Var "l") (Abs "x" $ Abs "y" $ Var "x") 
+                tailLC = Abs "l" $ App (Var "l") (Abs "x" $ Abs "y" $ Var "y") 
+                tEmpty :: Bool
+                tEmpty = absLC $ Interpreter.lazyEval (App isEmptyLC t)
+            in
+              if tEmpty then [] else
+                let x = absLC $ Interpreter.lazyEval (App headLC t)
+                    xs = absLC $ Interpreter.lazyEval (App tailLC t)
+                in
+                  x : xs
+  -}

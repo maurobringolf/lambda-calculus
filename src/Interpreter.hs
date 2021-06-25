@@ -8,7 +8,8 @@ lazyEvalInterp :: [Variable] -> Term -> Term
 lazyEvalInterp fs (App t1 t2) = case lazyEvalInterp fs t1 of
   (Abs x t1') -> lazyEvalInterp fs (subst x t1' t2)
   (Var f) -> if f `elem` fs then App (Var f) (lazyEvalInterp fs t2)
-             else App t1 t2
+             --else App t1 t2
+             else App (Var f) t2
   t1'         -> App t1' t2
 lazyEvalInterp fs t = t
 

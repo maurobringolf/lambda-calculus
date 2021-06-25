@@ -15,9 +15,9 @@ lexer = P.makeTokenParser emptyDef{ commentStart = "--"
                                   , commentEnd = "\n"
                                   , identStart = letter
                                   , identLetter = alphaNum
-                                  , opStart = oneOf "*+-=<>"
-                                  , opLetter = oneOf "*+-=<>"
-                                  , reservedOpNames = ["+", "*", "-", "==", "<=", ">="]
+                                  , opStart = oneOf "*+-=<>:"
+                                  , opLetter = oneOf "*+-=<>:"
+                                  , reservedOpNames = ["+", "*", "-", "==", "<=", ">=", ":"]
                                   , reservedNames = ["true", "false", "nop",
                                                       "if", "then", "else", "fi",
                                                       "while", "do", "od", "True", "False"]
@@ -61,7 +61,15 @@ parseApp = do xs <- many1 $ parseAtom
               return $ foldl1 App xs
 
 parseAtom :: Parser Exp
-parseAtom = parseBool <|> parseNum <|> parseVar <|> m_parens parseExp
+parseAtom = parseKeyword <|> parseList <|> parseBool <|> parseNum <|> parseVar <|> m_parens parseExp
+
+parseKeyword = try (m_symbol "foldr" >> return Foldr)
+
+parseList :: Parser Exp
+parseList = do m_symbol "["
+               xs <- sepBy parseExp (m_symbol ",")
+               m_symbol "]"
+               return $ List xs
 
 parseBool :: Parser Exp
 parseBool = (m_reserved "True" >> return (Boolean True)) <|> (m_reserved "False" >> return (Boolean False))
@@ -78,7 +86,8 @@ parseOp' :: Parser Exp
 parseOp' = buildExpressionParser table parseApp <?> "expression"
 
 table = [
-          [ Infix (m_reservedOp "*" >> return (\l -> \r ->(App (App Mult l) r)))  AssocRight]
+          [ Infix (m_reservedOp ":" >> return (\l -> \r ->(App (App Cons l) r)))  AssocRight]
+        , [ Infix (m_reservedOp "*" >> return (\l -> \r ->(App (App Mult l) r)))  AssocRight]
         , [ Infix (m_reservedOp "+" >> return (\l -> \r ->(App (App Add l) r)))  AssocLeft, Infix (m_reservedOp "-" >> return (\l -> \r ->(App (App Sub l) r)))  AssocLeft]
         , [ Infix (m_reservedOp "==" >> return (\l -> \r ->(App (App Eq l) r)))  AssocNone, Infix (m_reservedOp "<=" >> return (\l -> \r ->(App (App Leq l) r)))  AssocNone, Infix (m_reservedOp ">=" >> return (\l -> \r ->(App (App Geq l) r)))  AssocNone]
         , [ Infix (m_reservedOp "&&" >> return (\l -> \r ->(App (App And l) r))) AssocRight]

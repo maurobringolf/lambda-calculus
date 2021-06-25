@@ -14,6 +14,7 @@ import Control.Monad.IO.Class
 main :: IO ()
 main = do
   add <- liftIO $ readFile "programs/add.hs"
+  map <- liftIO $ readFile "programs/map.hs"
   fac <- liftIO $ readFile "programs/fac.hs"
   ifelse <- liftIO $ readFile "programs/ifelse.hs"
   equals <- liftIO $ readFile "programs/equals.hs"
@@ -21,13 +22,24 @@ main = do
   false <- liftIO $ readFile "programs/false.hs"
   leq <- liftIO $ readFile "programs/leq.hs"
   or <- liftIO $ readFile "programs/or.hs"
+  length <- liftIO $ readFile "programs/length.hs"
   and <- liftIO $ readFile "programs/and.hs"
   multiline <- liftIO $ readFile "programs/multiline.hs"
   minus <- liftIO $ readFile "programs/minus.hs"
+  cons <- liftIO $ readFile "programs/cons.hs"
   hspec $ do
     describe "(exec . parse) SyntaxSugar programs" $ do
       it "programs/add.hs" $ do
         (exec . parse) add `shouldBe` (3::Integer)
+
+      it "programs/length.hs" $ do
+        (exec . parse) length `shouldBe` (3::Integer)
+
+      it "programs/cons.hs" $ do
+        (exec . parse) cons `shouldBe` [2,1,2,(3::Integer)]
+
+      it "programs/map.hs" $ do
+        (exec . parse) map `shouldBe` [2::Integer, 4,6]
 
       it "programs/minus.hs" $ do
         (exec . parse) minus `shouldBe` (0::Integer)
