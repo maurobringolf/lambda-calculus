@@ -36,8 +36,10 @@ library
       src
   build-depends:
       base >=4.7 && <5
+    , bytestring
     , containers
     , directory
+    , file-embed
     , hspec
     , optparse-applicative
     , parsec
@@ -52,8 +54,10 @@ executable lambda-calculus-exe
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , bytestring
     , containers
     , directory
+    , file-embed
     , hspec
     , lambda-calculus
     , optparse-applicative
@@ -71,8 +75,10 @@ test-suite lambda-calculus-test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , bytestring
     , containers
     , directory
+    , file-embed
     , hspec
     , lambda-calculus
     , optparse-applicative

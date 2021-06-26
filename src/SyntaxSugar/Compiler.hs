@@ -1,9 +1,15 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module SyntaxSugar.Compiler where
+
+import Data.FileEmbed
+import Data.ByteString.Char8(unpack)
 
 import Data.List(find)
 import qualified Data.Set
 
 import qualified SyntaxSugar.Ast as SS
+import qualified SyntaxSugar.Parser
 import Ast
 import Parser
 import qualified Interpreter
@@ -15,7 +21,13 @@ exec :: RepresentableLC a => SS.Program -> a
 exec = absLC . Interpreter.lazyEval . compileMain
 
 compileMain :: SS.Program -> Term
-compileMain = compile . buildMain
+compileMain = compile . buildMain . appendProgram stdLib
+
+stdLib :: SS.Program
+stdLib = SyntaxSugar.Parser.parse $ unpack $(embedFile "lib/stdlib.hs")
+
+appendProgram :: SS.Program -> SS.Program -> SS.Program
+appendProgram (SS.P p1) (SS.P p2) = SS.P (p1 ++ p2)
 
 buildMain :: SS.Program -> SS.Exp
 buildMain (SS.P defs) = let ds = map desugarRecursion defs

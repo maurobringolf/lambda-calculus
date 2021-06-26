@@ -25,6 +25,8 @@ dependencies:
 - hspec
 - directory
 - optparse-applicative
+- file-embed
+- bytestring
 
 library:
   source-dirs: src
