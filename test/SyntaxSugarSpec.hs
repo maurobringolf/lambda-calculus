@@ -4,6 +4,7 @@ import Test.Hspec
 
 import SyntaxSugar.Parser
 import SyntaxSugar.Compiler
+import SyntaxSugar.TypeChecker
 import SyntaxSugar.Ast
 
 import qualified Ast as LC
@@ -11,65 +12,96 @@ import qualified Parser as LCParser
 
 import Control.Monad.IO.Class
 
+import Data.Map(empty, fromList, singleton)
+import qualified Data.Set
+
+testProgramOutput path result = do
+  p <- parse <$> (runIO $ readFile path)
+  it path $ do
+    execTyped p `shouldBe` show result
+    exec p `shouldBe` result
+
+testExpType eCode t = do
+  let e = parseE eCode
+  it (show e ++ "::" ++ show t) $ do
+    equalsUpToRenaming (inferType empty e) t `shouldBe` True
+
+testUnificationSuccess eq s = testUnification eq $ Left s
+
+testUnification eq x = do
+  it (show eq) $ case x of
+    Left res -> (unify eq `shouldBe` Left (fromList res))
+    Right err -> (unify eq `shouldBe` Right err)
+
 main :: IO ()
 main = do
-  add <- liftIO $ readFile "programs/add.hs"
-  map <- liftIO $ readFile "programs/map.hs"
-  fac <- liftIO $ readFile "programs/fac.hs"
-  ifelse <- liftIO $ readFile "programs/ifelse.hs"
-  equals <- liftIO $ readFile "programs/equals.hs"
-  true <- liftIO $ readFile "programs/true.hs"
-  false <- liftIO $ readFile "programs/false.hs"
-  leq <- liftIO $ readFile "programs/leq.hs"
-  or <- liftIO $ readFile "programs/or.hs"
-  length <- liftIO $ readFile "programs/length.hs"
-  and <- liftIO $ readFile "programs/and.hs"
-  multiline <- liftIO $ readFile "programs/multiline.hs"
-  minus <- liftIO $ readFile "programs/minus.hs"
-  cons <- liftIO $ readFile "programs/cons.hs"
   hspec $ do
+
+
     describe "(exec . parse) SyntaxSugar programs" $ do
-      it "programs/add.hs" $ do
-        (exec . parse) add `shouldBe` (3::Integer)
 
-      it "programs/length.hs" $ do
-        (exec . parse) length `shouldBe` (3::Integer)
+      testProgramOutput "programs/add.hs" (3::Integer)
+      testProgramOutput "programs/length.hs" (3::Integer)
+      testProgramOutput "programs/cons.hs" [2,1,2,(3::Integer)]
+      testProgramOutput "programs/map.hs" [2,4,(6::Integer)]
+      testProgramOutput "programs/minus.hs" (0::Integer)
+      testProgramOutput "programs/multiline.hs" (4::Integer)
+      testProgramOutput "programs/fac.hs" (6::Integer)
+      testProgramOutput "programs/ifelse.hs" (9::Integer)
+      testProgramOutput "programs/equals.hs" True
+      testProgramOutput "programs/true.hs" True
+      testProgramOutput "programs/false.hs" False
+      testProgramOutput "programs/leq.hs" True
+      testProgramOutput "programs/and.hs" True
+      testProgramOutput "programs/or.hs" True
 
-      it "programs/cons.hs" $ do
-        (exec . parse) cons `shouldBe` [2,1,2,(3::Integer)]
+    describe "unify" $ do
 
-      it "programs/map.hs" $ do
-        (exec . parse) map `shouldBe` [2::Integer, 4,6]
+      it "equalsUpToRenaming" $ do
+        equalsUpToRenaming (TVar 0) (TVar 1) `shouldBe` True
+        equalsUpToRenaming TInt TBool `shouldBe` False
+        equalsUpToRenaming TInt (TVar 1) `shouldBe` False
+        equalsUpToRenaming (TVar 1) (TVar 1) `shouldBe` True
+        equalsUpToRenaming (TFun (TVar 1) (TVar 1)) (TFun (TVar 0) (TVar 0)) `shouldBe` True
 
-      it "programs/minus.hs" $ do
-        (exec . parse) minus `shouldBe` (0::Integer)
+      testUnificationSuccess (TEQ (TVar 1) (TVar 0)) [(1, TVar 0)]
+      testUnificationSuccess (TEQ (TVar 1) TInt) [(1, TInt)]
+      testUnificationSuccess (TEQ (TVar 1) (TList TInt)) [(1, TList TInt)]
+      testUnificationSuccess (TEQ (TFun TInt TInt) (TVar 0)) [(0, TFun TInt TInt)]
+      testUnificationSuccess (TEQ (TFun TInt TInt) (TFun (TVar 0) (TVar 1))) [(0, TInt), (1, TInt)]
 
-      it "programs/multiline.hs" $ do
-        (exec . parse) multiline `shouldBe` (4::Integer)
+      testUnificationSuccess (TEQ (TFun (TVar 0) (TFun (TVar 1) (TVar 0))) (TFun (TFun (TVar 2) (TVar 2)) (TVar 3))) [(0, (TFun (TVar 2) (TVar 2))), (3, (TFun (TVar 1) (TFun (TVar 2) (TVar 2))))]
 
-      it "programs/fac.hs" $ do
-        (exec . parse) fac `shouldBe` (6::Integer)
+      testUnificationSuccess (TEQ (TFun (TVar 0) (TVar 0)) (TFun (TVar 1) (TVar 2))) [(0, (TVar 1)), (2, (TVar 1))]
 
-      it "programs/ifelse.hs" $ do
-        (exec . parse) ifelse `shouldBe` (9::Integer)
+    describe "Typecheck expressions" $ do
+      testExpType "1" TInt
+      testExpType "1 + 2" TInt
+      testExpType "\\x -> x + 2" (TFun TInt TInt)
+      testExpType "(\\x -> x + 2) 3" TInt
+      testExpType "\\x -> \\a -> a + 1" (TFun (TVar 2) (TFun TInt TInt))
+      testExpType "foldr (\\x -> \\a -> a + 1)" (TFun TInt (TFun (TList (TVar 0)) TInt))
+      testExpType "foldr (\\x -> \\a -> a + 1) 0" (TFun (TList (TVar 0)) TInt)
 
-      it "programs/equals.hs" $ do
-        (exec . parse) equals `shouldBe` True
 
-      it "programs/true.hs" $ do
-        (exec . parse) true `shouldBe` True
+      it "buildEqs" $ do
+        let (te,ctx) = freshTVar empty
+        te `shouldBe` TVar 1
+        ctx `shouldBe` Data.Map.singleton "$$dummy1" (TVar 1)
+        buildEqs ctx (parseE "\\x -> x") te `shouldBe` Data.Set.fromList [TEQ (TFun (TVar 2) (TVar 3)) (TVar 1), TEQ (TVar 2) (TVar 3)]
+        unifyAll (buildEqs ctx (parseE "\\x -> x") te) `shouldBe` Left (Data.Map.fromList [(1, (TFun (TVar 3) (TVar 3))),(2, TVar 3)])
 
-      it "programs/false.hs" $ do
-        (exec . parse) false `shouldBe` False
-
-      it "programs/leq.hs" $ do
-        (exec . parse) leq `shouldBe` True
-
-      it "programs/and.hs" $ do
-        (exec . parse) and `shouldBe` True
-
-      it "programs/or.hs" $ do
-        (exec . parse) or `shouldBe` True
+      testExpType "\\x -> x" (TFun (TVar 3) (TVar 3))
+      testExpType "\\x -> 1" (TFun (TVar 2) TInt)
+      testExpType "\\x -> \\y -> x y" (TFun (TFun (TVar 0) (TVar 1)) (TFun (TVar 0) (TVar 1)))
+      testExpType "\\x -> x 1" (TFun (TFun TInt (TVar 1)) (TVar 1))
+      testExpType "\\x -> x + 1" (TFun TInt TInt)
+      testExpType "\\y -> (\\x -> x + 1) y" (TFun TInt TInt)
+      testExpType "\\x -> foldr x" (TFun (TFun (TVar 0) (TFun (TVar 1) (TVar 1))) (TFun (TVar 1) (TFun (TList (TVar 0)) (TVar 1))))
+      testExpType "\\x -> \\y -> x y" (TFun (TFun (TVar 0) (TVar 1)) (TFun (TVar 0) (TVar 1)))
+      testExpType "\\x -> True && (x || x)" (TFun TBool TBool)
+      testExpType "[1]" (TList TInt)
+      testExpType "2:[1]" (TList TInt)
 
     describe "SyntaxSugar.parse" $ do
       it "parse 'main = 1'" $

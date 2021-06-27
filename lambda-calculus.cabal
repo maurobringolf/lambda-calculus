@@ -30,6 +30,7 @@ library
       SyntaxSugar.Ast
       SyntaxSugar.Compiler
       SyntaxSugar.Parser
+      SyntaxSugar.TypeChecker
   other-modules:
       Paths_lambda_calculus
   hs-source-dirs:
@@ -37,6 +38,7 @@ library
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , composition
     , containers
     , directory
     , file-embed
@@ -55,6 +57,7 @@ executable lambda-calculus-exe
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , composition
     , containers
     , directory
     , file-embed
@@ -76,6 +79,7 @@ test-suite lambda-calculus-test
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , composition
     , containers
     , directory
     , file-embed

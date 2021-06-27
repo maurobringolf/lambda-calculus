@@ -1,12 +1,12 @@
-f = x
-g = y
-
-main = h + h
-
+f = \x -> x
+g = \y -> y
 h =
   1 + 1
 
+main = h + h
 
-z =f
+
+
+z =\x -> f
 
       x x

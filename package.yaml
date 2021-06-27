@@ -27,6 +27,7 @@ dependencies:
 - optparse-applicative
 - file-embed
 - bytestring
+- composition
 
 library:
   source-dirs: src

@@ -5,14 +5,29 @@ module SyntaxSugar.Compiler where
 import Data.FileEmbed
 import Data.ByteString.Char8(unpack)
 
-import Data.List(find)
+import Data.List(find, intercalate)
 import qualified Data.Set
 
 import qualified SyntaxSugar.Ast as SS
 import qualified SyntaxSugar.Parser
+import SyntaxSugar.TypeChecker(getMainType, Type(..))
 import Ast
 import Parser
 import qualified Interpreter
+
+
+execTyped :: SS.Program -> String
+execTyped p = let p' = appendProgram stdLib p
+                  t = getMainType p'
+                  res = Interpreter.lazyEval $ compileMain p
+               in
+                 absT t res
+
+absT :: Type -> Term -> String
+absT TInt te = show $ (absLC::Term -> Integer) $ te
+absT TBool te = show $ (absLC::Term -> Bool) $ te
+absT (TList t) te = "[" ++ intercalate "," (map (absT t) . (absLC::Term -> [Term]) $ te) ++ "]"
+absT (TVar _) te = show te
 
 eval :: RepresentableLC a => SS.Exp -> a
 eval = absLC . Interpreter.lazyEval . compile
@@ -136,6 +151,7 @@ churchBool' :: Bool -> String
 churchBool' True = "(λa.λb.a)"
 churchBool' False = "(λa.λb.b)"
 
+
 class RepresentableLC a where
   repLC :: a -> Term
   absLC :: Term -> a
@@ -143,18 +159,18 @@ class RepresentableLC a where
 instance RepresentableLC Integer where
   repLC n = Abs "S" (Abs "Z" (foldr (\_ m -> (App (Var "S")) m) (Var "Z") [1..n]))
   absLC = convert . Interpreter.eval (Interpreter.LazyWithInterpretedSymbols ["S", "Z"]) . (\t -> (App (App t (Var "S")) (Var "Z")))
-    where
-      convert (Var "Z") = 0
-      convert (App (Var "S") t) = 1 + convert t
-      convert x = error $ "not a church numeral: " ++ show x
+      where
+        convert (Var "Z") = 0
+        convert (App (Var "S") t) = 1 + convert t
+        convert x = error $ "not a church numeral: " ++ show x
 
 instance RepresentableLC Bool where
   repLC b = churchBool b
   absLC = convert . Interpreter.eval (Interpreter.LazyWithInterpretedSymbols ["True", "False"]) . (\t -> App (App t (Var "True")) (Var "False"))
-    where
-      convert (Var "True") = True
-      convert (Var "False") = False
-      convert x = error $ "not a church boolean: " ++ show x
+      where
+        convert (Var "True") = True
+        convert (Var "False") = False
+        convert x = error $ "not a church boolean: " ++ show x
 
 instance RepresentableLC Term where
   repLC = id
@@ -168,20 +184,3 @@ instance (RepresentableLC a) => RepresentableLC [a] where
         (Var "Nil") -> []
         (App (App (Var "Cons") h) t) -> absLC h : convert (Interpreter.lazyEval t)
         e -> error $ "Not a church list: " ++ show e
-  {-
-  repLC [] = Abs "s" $ repLC True
-  repLC (x:xs) = Abs "s" $ App (App (Var "s") (repLC x)) (repLC xs)
-
-
-  absLC t = let isEmptyLC = Abs "l" $ App (Var "l") (Abs "h" $ Abs "t" $ repLC False)
-                headLC = Abs "l" $ App (Var "l") (Abs "x" $ Abs "y" $ Var "x") 
-                tailLC = Abs "l" $ App (Var "l") (Abs "x" $ Abs "y" $ Var "y") 
-                tEmpty :: Bool
-                tEmpty = absLC $ Interpreter.lazyEval (App isEmptyLC t)
-            in
-              if tEmpty then [] else
-                let x = absLC $ Interpreter.lazyEval (App headLC t)
-                    xs = absLC $ Interpreter.lazyEval (App tailLC t)
-                in
-                  x : xs
-  -}

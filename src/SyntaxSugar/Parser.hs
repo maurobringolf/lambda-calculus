@@ -94,6 +94,10 @@ table = [
         , [ Infix (m_reservedOp "||" >> return (\l -> \r ->(App (App Or l) r))) AssocRight]
         ]
 
+
+parseE :: String -> Exp
+parseE c = case Text.ParserCombinators.Parsec.Prim.parse (parseExp <* eof) "" c of Left err -> error (show err); Right e -> e
+
 parse :: String -> Program
 parse c = let defs = splitDefs c
            in

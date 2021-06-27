@@ -6,7 +6,7 @@ import qualified Parser(parse)
 import Ast
 import Interpreter
 
-import SyntaxSugar.Compiler(compileMain)
+import SyntaxSugar.Compiler(compileMain, execTyped)
 import qualified SyntaxSugar.Parser(parse)
 
 import System.Directory(doesFileExist)
@@ -56,13 +56,13 @@ main = do
 
           source <- readFile file
 
-          let parse = if syntaxSugar then compileMain . SyntaxSugar.Parser.parse else Parser.parse
-
-          let program = parse source
-
-          when (compileOnly) $ do
-            putStrLn $ show program
-            exitSuccess
-
-          let res = eval evaluationStrategy $ foldl App program $ map Parser.parse arguments
-          putStrLn $ show res
+          if syntaxSugar then do
+            let program = SyntaxSugar.Parser.parse source
+            when (compileOnly) $ do
+              putStrLn $ show program
+              exitSuccess
+            putStrLn $ execTyped $ program
+          else do
+            let program = Parser.parse source
+            let res = eval evaluationStrategy $ foldl App program $ map Parser.parse arguments
+            putStrLn $ show res
