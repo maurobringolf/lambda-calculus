@@ -1,6 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-module SyntaxSugar.Compiler where
+module ChurchEncoding.Compiler where
 
 import Data.FileEmbed
 import Data.ByteString.Char8(unpack)
@@ -8,9 +8,9 @@ import Data.ByteString.Char8(unpack)
 import Data.List(find, intercalate)
 import qualified Data.Set
 
-import qualified SyntaxSugar.Ast as SS
-import qualified SyntaxSugar.Parser
-import SyntaxSugar.TypeChecker(getMainType, Type(..))
+import qualified ChurchEncoding.Ast as SS
+import qualified ChurchEncoding.Parser
+import ChurchEncoding.TypeChecker(getMainType, Type(..))
 import Ast
 import Parser
 import qualified Interpreter
@@ -39,7 +39,7 @@ compileMain :: SS.Program -> Term
 compileMain = compile . buildMain . appendProgram stdLib
 
 stdLib :: SS.Program
-stdLib = SyntaxSugar.Parser.parse $ unpack $(embedFile "lib/stdlib.hs")
+stdLib = ChurchEncoding.Parser.parse $ unpack $(embedFile "lib/stdlib.hs")
 
 appendProgram :: SS.Program -> SS.Program -> SS.Program
 appendProgram (SS.P p1) (SS.P p2) = SS.P (p1 ++ p2)

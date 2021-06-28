@@ -1,11 +1,11 @@
-module SyntaxSugarSpec where
+module ChurchEncodingSpec where
 
 import Test.Hspec
 
-import SyntaxSugar.Parser
-import SyntaxSugar.Compiler
-import SyntaxSugar.TypeChecker
-import SyntaxSugar.Ast
+import ChurchEncoding.Parser
+import ChurchEncoding.Compiler
+import ChurchEncoding.TypeChecker
+import ChurchEncoding.Ast
 
 import qualified Ast as LC
 import qualified Parser as LCParser
@@ -38,7 +38,7 @@ main = do
   hspec $ do
 
 
-    describe "(exec . parse) SyntaxSugar programs" $ do
+    describe "(exec . parse) ChurchEncoding programs" $ do
 
       testProgramOutput "programs/add.hs" (3::Integer)
       testProgramOutput "programs/length.hs" (3::Integer)
@@ -103,7 +103,7 @@ main = do
       testExpType "[1]" (TList TInt)
       testExpType "2:[1]" (TList TInt)
 
-    describe "SyntaxSugar.parse" $ do
+    describe "ChurchEncoding.parse" $ do
       it "parse 'main = 1'" $
         parse "main = 1" `shouldBe` P [Def "main" (Numeral 1)]
       it "parse 'main = 1 1'" $
@@ -135,7 +135,7 @@ main = do
       it "parse 'main = \\x -> 2 - (0x23 + 2)'" $
         parse "main = \\x -> 2 - (0x23 + 2)" `shouldBe` P [Def "main" (Abs "x" (App (App Sub (Numeral 2)) (App (App Add (Numeral 35)) (Numeral 2)))) ]
 
-    describe "SyntaxSugar.eval" $ do
+    describe "ChurchEncoding.eval" $ do
       it "eval '0''" $
         eval (Numeral 0) `shouldBe` (0::Integer)
       it "eval '1''" $
@@ -153,7 +153,7 @@ main = do
       it "eval '0 + 0''" $
         eval (App (App Add (Numeral 0)) (Numeral 0)) `shouldBe` (0::Integer)
 
-    describe "SyntaxSugar.exec . SyntaxSugar.parse" $ do
+    describe "ChurchEncoding.exec . ChurchEncoding.parse" $ do
       it "exec . parse 'main = 0'" $
         (exec . parse) "main = 0" `shouldBe` (0::Integer)
       it "exec . parse 'main = (\\x -> x + x) 1'" $

@@ -4,7 +4,7 @@ import Interpreter
 import Parser
 import Ast
 
-import qualified SyntaxSugarSpec
+import qualified ChurchEncodingSpec
 
 runLazy :: String -> Term
 runLazy = lazyEval . parse
@@ -106,4 +106,4 @@ main = do
         parse "λf.(λx.z z)" `shouldBe` Abs "f" (Abs "x"
           (App (Var "z") (Var "z"))
         )
-  SyntaxSugarSpec.main
+  ChurchEncodingSpec.main

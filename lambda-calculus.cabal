@@ -25,12 +25,12 @@ source-repository head
 library
   exposed-modules:
       Ast
+      ChurchEncoding.Ast
+      ChurchEncoding.Compiler
+      ChurchEncoding.Parser
+      ChurchEncoding.TypeChecker
       Interpreter
       Parser
-      SyntaxSugar.Ast
-      SyntaxSugar.Compiler
-      SyntaxSugar.Parser
-      SyntaxSugar.TypeChecker
   other-modules:
       Paths_lambda_calculus
   hs-source-dirs:
@@ -71,7 +71,7 @@ test-suite lambda-calculus-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      SyntaxSugarSpec
+      ChurchEncodingSpec
       Paths_lambda_calculus
   hs-source-dirs:
       test

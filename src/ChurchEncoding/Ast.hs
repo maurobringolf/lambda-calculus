@@ -1,4 +1,4 @@
-module SyntaxSugar.Ast where
+module ChurchEncoding.Ast where
 
 import Data.List(intercalate)
 import qualified Data.Set

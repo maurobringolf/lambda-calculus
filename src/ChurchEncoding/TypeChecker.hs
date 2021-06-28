@@ -1,6 +1,6 @@
-module SyntaxSugar.TypeChecker where
+module ChurchEncoding.TypeChecker where
 
-import SyntaxSugar.Ast
+import ChurchEncoding.Ast
 import Data.Map(Map)
 import qualified Data.Map
 import qualified Data.Set

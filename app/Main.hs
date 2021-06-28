@@ -6,8 +6,8 @@ import qualified Parser(parse)
 import Ast
 import Interpreter
 
-import SyntaxSugar.Compiler(compileMain, execTyped)
-import qualified SyntaxSugar.Parser(parse)
+import ChurchEncoding.Compiler(compileMain, execTyped)
+import qualified ChurchEncoding.Parser(parse)
 
 import System.Directory(doesFileExist)
 import System.Exit(exitFailure, exitSuccess)
@@ -57,7 +57,7 @@ main = do
           source <- readFile file
 
           if syntaxSugar then do
-            let program = SyntaxSugar.Parser.parse source
+            let program = ChurchEncoding.Parser.parse source
             when (compileOnly) $ do
               putStrLn $ show program
               exitSuccess

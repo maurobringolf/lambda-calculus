@@ -1,6 +1,6 @@
-module SyntaxSugar.Parser where
+module ChurchEncoding.Parser where
 
-import SyntaxSugar.Ast
+import ChurchEncoding.Ast
 
 import qualified Text.ParserCombinators.Parsec.Token as P
 import Text.ParserCombinators.Parsec.Language
