@@ -28,6 +28,16 @@ testExpType eCode t = do
 
 testUnificationSuccess eq s = testUnification eq $ Left s
 
+testParseHaskell code eExp = do
+  let eAct = parseE code
+  it ("parse " ++ show code) $ do
+    eAct `shouldBe` eExp
+
+testParseProgram code pExp = do
+  let pAct = parse code
+  it ("parse " ++ show code) $ do
+    pAct `shouldBe` pExp
+
 testUnification eq x = do
   it (show eq) $ case x of
     Left res -> (unify eq `shouldBe` Left (fromList res))
@@ -104,36 +114,24 @@ main = do
       testExpType "2:[1]" (TList TInt)
 
     describe "ChurchEncoding.parse" $ do
-      it "parse 'main = 1'" $
-        parse "main = 1" `shouldBe` P [Def "main" (Numeral 1)]
-      it "parse 'main = 1 1'" $
-        parse "main = 1 1" `shouldBe` P [Def "main" (App (Numeral 1) (Numeral 1))]
-      it "parse 'main = f x'" $
-        parse "main = f x" `shouldBe` P [Def "main" (App (Var "f") (Var "x"))]
-      it "parse 'main = f x y'" $
-        parse "main = f x y" `shouldBe` P [Def "main" (App (App (Var "f") (Var "x")) (Var "y"))]
-      it "parse 'main = f (x y)'" $
-        parse "main = f (x y)" `shouldBe` P [Def "main" (App (Var "f") (App (Var "x") (Var "y")))]
-      it "parse 'main = 1 + 1'" $
-        parse "main = 1 + 1" `shouldBe` P [Def "main" (App (App Add (Numeral 1)) (Numeral 1)) ]
-      it "parse 'main = 1 * 1'" $
-        parse "main = 1 * 1" `shouldBe` P [Def "main" (App (App Mult (Numeral 1)) (Numeral 1)) ]
-      it "parse 'main = 2 + 1'" $
-        parse "main = 2 + 1" `shouldBe` P [Def "main" (App (App Add (Numeral 2)) (Numeral 1)) ]
-      it "parse 'main = x + y + z'" $
-        parse "main = x + y + z" `shouldBe` P [Def "main" (App (App Add (App (App Add (Var "x")) (Var "y"))) (Var "z")) ]
-      it "parse 'main = f 1 * 2'" $
-        parse "main = f 1 * 2" `shouldBe` P [Def "main" (App (App Mult (App (Var "f") (Numeral 1))) (Numeral 2)) ]
-      it "parse 'main = \\x -> x'" $
-        parse "main = \\x -> x" `shouldBe` P [Def "main" (Abs "x" (Var "x")) ]
-      it "parse 'main = \\x -> f x'" $
-        parse "main = \\x -> f x" `shouldBe` P [Def "main" (Abs "x" (App (Var "f") (Var "x"))) ]
-      it "parse 'main = \\x -> \\y -> x y'" $
-        parse "main = \\x -> \\y -> x y" `shouldBe` P [Def "main" (Abs "x" (Abs "y" (App (Var "x") (Var "y")))) ]
-      it "parse 'main = \\x -> 1 + 2'" $
-        parse "main = \\x -> 1 + 2" `shouldBe` P [Def "main" (Abs "x" (App (App Add (Numeral 1)) (Numeral 2))) ]
-      it "parse 'main = \\x -> 2 - (0x23 + 2)'" $
-        parse "main = \\x -> 2 - (0x23 + 2)" `shouldBe` P [Def "main" (Abs "x" (App (App Sub (Numeral 2)) (App (App Add (Numeral 35)) (Numeral 2)))) ]
+
+      testParseHaskell "1" (Numeral 1)
+      testParseHaskell "1 1" (App (Numeral 1) (Numeral 1))
+      testParseHaskell "f x" (App (Var "f") (Var "x"))
+      testParseHaskell "f x y" (App (App (Var "f") (Var "x")) (Var "y"))
+      testParseHaskell "f (x y)" (App (Var "f") (App (Var "x") (Var "y")))
+      testParseHaskell "1 + 1" (App (App Add (Numeral 1)) (Numeral 1)) 
+      testParseHaskell "1 * 1" (App (App Mult (Numeral 1)) (Numeral 1)) 
+      testParseHaskell "2 + 1" (App (App Add (Numeral 2)) (Numeral 1)) 
+      testParseHaskell "x + y + z" (App (App Add (App (App Add (Var "x")) (Var "y"))) (Var "z")) 
+      testParseHaskell "f 1 * 2" (App (App Mult (App (Var "f") (Numeral 1))) (Numeral 2)) 
+      testParseHaskell "\\x -> x" (Abs "x" (Var "x")) 
+      testParseHaskell "\\x -> f x" (Abs "x" (App (Var "f") (Var "x"))) 
+      testParseHaskell "\\x -> \\y -> x y" (Abs "x" (Abs "y" (App (Var "x") (Var "y")))) 
+      testParseHaskell "\\x -> 1 + 2" (Abs "x" (App (App Add (Numeral 1)) (Numeral 2))) 
+      testParseHaskell "\\x -> 2 - (0x23 + 2)" (Abs "x" (App (App Sub (Numeral 2)) (App (App Add (Numeral 35)) (Numeral 2)))) 
+      testParseHaskell "\\x y -> x" (Abs "x" (Abs "y" (Var "x")))
+      testParseProgram "f x y = y" (P [Def "f" (Abs "x" (Abs "y" (Var "y")))])
 
     describe "ChurchEncoding.eval" $ do
       it "eval '0''" $

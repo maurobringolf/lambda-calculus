@@ -1,5 +1,5 @@
-f = \x -> x
-g = \y -> y
+f x = x
+g y = y
 h =
   1 + 1
 
@@ -7,6 +7,6 @@ main = h + h
 
 
 
-z =\x -> f
+z x = f
 
       x x

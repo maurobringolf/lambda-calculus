@@ -5,8 +5,8 @@ import ChurchEncoding.Ast
 import qualified Text.ParserCombinators.Parsec.Token as P
 import Text.ParserCombinators.Parsec.Language
 import Text.ParserCombinators.Parsec.Expr(buildExpressionParser, Assoc(..), Operator(..))
-import Text.ParserCombinators.Parsec.Prim(Parser, (<|>), (<?>), parse, try)
-import Text.ParserCombinators.Parsec.Combinator(many1, eof, sepBy)
+import Text.ParserCombinators.Parsec.Prim(Parser, (<|>), (<?>), parse, try, many)
+import Text.ParserCombinators.Parsec.Combinator(many1, eof, sepBy, sepBy1)
 import Text.ParserCombinators.Parsec.Char(alphaNum, oneOf, letter, newline)
 
 import Data.Char(isSpace)
@@ -47,10 +47,10 @@ parseIfElse = do m_reservedOp "if"
 
 parseLambda' :: Parser Exp
 parseLambda' = do m_symbol "\\"
-                  boundVar <- m_identifier
+                  boundVars <- many1 m_identifier
                   m_symbol "->"
                   body <- parseExp
-                  return $ Abs boundVar body
+                  return $ foldr Abs body boundVars
 
 parseLambda :: Parser Exp
 parseLambda = parseLambda'
@@ -116,6 +116,7 @@ splitDefs s = let ls = filter (/= "") $ lines s
 
 parseDefinition :: Parser Definition
 parseDefinition = do id <- m_identifier
+                     boundVars <- many m_identifier
                      m_symbol "="
                      e <- parseExp
-                     return $ Def id e
+                     return $ Def id $ foldr Abs e boundVars
