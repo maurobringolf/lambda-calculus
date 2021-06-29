@@ -59,7 +59,7 @@ main = do
           if syntaxSugar then do
             let program = ChurchEncoding.Parser.parse source
             when (compileOnly) $ do
-              putStrLn $ show program
+              putStrLn $ show $ compileMain program
               exitSuccess
             putStrLn $ execTyped $ program
           else do
