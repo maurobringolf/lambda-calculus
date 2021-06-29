@@ -49,8 +49,14 @@ main = do
       it "show 'x y z'" $
         show (App (App (Var "x") (Var "y")) (Var "z")) `shouldBe` "x y z"
 
-      it "show 'x y λz.z'" $
-        show (App (App (Var "x") (Var "y")) (Abs "z" (Var "z"))) `shouldBe` "x y λz.z"
+      it "show 'x y (λz.z)'" $
+        show (App (App (Var "x") (Var "y")) (Abs "z" (Var "z"))) `shouldBe` "x y (λz.z)"
+
+      it "show ' (λx.x) (λz.z)'" $
+        show (App (Abs "x" (Var "x")) (Abs "z" (Var "z"))) `shouldBe` "(λx.x) (λz.z)"
+
+      it "show ' (λx.x) (λy.y) (λz.z)'" $
+        show (App (App (Abs "x" (Var "x")) (Abs "y" (Var "y"))) (Abs "z" (Var "z"))) `shouldBe` "(λx.x) (λy.y) (λz.z)"
 
       it "show '(λx.x) y'" $
         show (App (Abs "x" (Var "x")) (Var "y")) `shouldBe` "(λx.x) y"

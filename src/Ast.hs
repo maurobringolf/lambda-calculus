@@ -14,14 +14,17 @@ instance Eq Term where
   (==) _ _ = False
 
 instance Show Term where
-  show (Var x) = x
-  show (Abs x t) = "λ" ++ x ++ "." ++ show t
-  show (App t1 t2) = showAppL t1 ++ " " ++ showAppR t2
-    where
-      showAppL (Abs x t) = "(" ++ show (Abs x t) ++ ")"
-      showAppL t = show t
-      showAppR (App t s) = "(" ++ show (App t s) ++ ")"
-      showAppR t = show t
+  show = showAbs
+    where showAtom (Var x) = x
+          showAtom t = "(" ++ show t ++ ")"
+
+          showAbs (Abs x t) = "λ" ++ x ++ "." ++ showAbs t
+          showAbs t = showApp t
+
+          showApp (App t1 t2) = showApp t1 ++ " " ++ showAtom t2
+          showApp t = showAtom t
+  
+
 
 subst :: Variable -> Term -> Term -> Term
 subst x (Var y) t
