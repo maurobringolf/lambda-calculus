@@ -91,6 +91,7 @@ Running the interpreter with `--haskell` changes the parsed input language to a 
 
 * Top level definitions with non-mutual recursion
 * A `main` function with result of type `Int`, `Bool` or `List[a]`
+* No type annotations, all types are inferred!
 * Non-negative integers with `+`, `-`, `*`, `<`, `<=`, `==`
 * Booleans with`&&`, `||`
 * `if _ then _ else` expressions
