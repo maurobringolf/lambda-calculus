@@ -64,6 +64,8 @@ main = do
       testProgramOutput "programs/leq.hs" True
       testProgramOutput "programs/and.hs" True
       testProgramOutput "programs/or.hs" True
+      testProgramOutput "programs/infinite.hs" [0::Integer, 1, 2]
+      testProgramOutput "programs/polymorph.hs" True
 
     describe "unify" $ do
 
