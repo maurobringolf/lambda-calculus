@@ -49,16 +49,16 @@ If you are confused, don't read the [slightly confusing section](slightly-confus
 
 ```raw
 Usage: lambda-calculus-exe [-v|--version] [-e|--eager] [-c|--compileOnly] 
-                           [-s|--syntaxSugar] FILE [ARGS...]
+                           [--haskell] FILE [ARGS...]
 
 Available options:
   -h,--help                Show this help text
   -v,--version             Print version and exit.
-  -e,--eager               Use eager evaluation strategy instead of lazy (the
-                           default).
-  -c,--compileOnly         Parse and compile only and print the result to
+  -e,--eager               Use eager evaluation strategy instead of lazy (does
+                           not apply for --haskell).
+  -c,--compileOnly         Do not run the program, but print the lambda term to
                            stdout.
-  -s,--syntaxSugar         Compile away all syntax sugar.
+  --haskell                Change input language to Haskell.
   FILE                     Program to execute
   ARGS...                  Optional space-separated list of lambda terms to
                            apply the program to
