@@ -10,7 +10,8 @@ import qualified Data.Set
 
 import qualified ChurchEncoding.Ast as SS
 import qualified ChurchEncoding.Parser
-import ChurchEncoding.TypeChecker(getMainType, Type(..))
+import ChurchEncoding.TypeChecker.TypeChecker(getMainType)
+import ChurchEncoding.TypeChecker.Type(Type(..))
 import Ast
 import Parser
 import qualified Interpreter

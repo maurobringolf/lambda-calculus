@@ -1,0 +1,122 @@
+module ChurchEncoding.TypeChecker.TypeChecker where
+
+import ChurchEncoding.TypeChecker.TypeContext
+import ChurchEncoding.TypeChecker.Type(Type(..), ftv)
+import ChurchEncoding.Ast
+import Data.Map(Map)
+import qualified Data.Map
+import qualified Data.Set
+import Control.Monad(forM_, forM)
+
+data TypeError = TE Type Type
+  deriving (Show, Eq)
+
+getMainType :: Program -> Type
+getMainType p = case Data.Map.lookup "main" (typeCheck p) of
+                  Nothing -> error $ "Missing main function."
+                  Just t -> t
+
+typeCheck :: Program -> TypeContext
+typeCheck (P defs) = runWithTypeContext (do
+  forM_ defs $ \(Def d e) -> do
+    a <- freshTVar
+    ctx <- getCtx
+    insertCtx d (inferType e (Data.Map.insert d a ctx))
+  getCtx) (Data.Map.singleton "undefined" $ TVar 0)
+
+inferType :: Exp -> TypeContext -> Type
+inferType e = runWithTypeContext $ do
+  a <- freshTVar
+  eqs <- buildEqs e a
+  let s = unifyAll eqs
+  return $ case s of
+    Left s -> apply s a
+    Right r -> error $ show r
+
+buildEqs :: Exp -> Type -> WithTypeContext (Data.Set.Set TEQ)
+buildEqs (Var x) t = do ctx <- getCtx
+                        return $ case Data.Map.lookup x ctx of
+                          Nothing -> error $ "Variable " ++ x ++ " not in scope"
+                          Just t' -> if t' == t then Data.Set.empty else Data.Set.singleton $ TEQ t' t
+buildEqs (Abs x e) t = do a1 <- freshTVar
+                          a2 <- freshTVar
+                          eqs <- withShadow x a1 $ buildEqs e a2
+                          return $ Data.Set.insert (TEQ (TFun a1 a2) t) eqs
+
+buildEqs (App t1 t2) t = do a <- freshTVar
+                            eqs1 <- buildEqs t1 (TFun a t)
+                            eqs2 <- buildEqs t2 a
+                            return $ eqs1 `Data.Set.union` eqs2
+
+buildEqs Add t = return $ Data.Set.singleton $ TEQ t $ binaryOpType TInt
+buildEqs Sub t = return $ Data.Set.singleton $ TEQ t $ binaryOpType TInt
+buildEqs Mult t = return $ Data.Set.singleton $ TEQ t $ binaryOpType TInt
+buildEqs Foldr t = do a1 <- freshTVar
+                      a2 <- freshTVar
+                      return $ Data.Set.singleton $ TEQ t (TFun (TFun a1 (TFun a2 a2)) (TFun a2 (TFun (TList a1) a2)))
+
+buildEqs (Numeral _) t = return $ Data.Set.singleton $ TEQ TInt t
+buildEqs (Boolean _) t = return $ Data.Set.singleton $ TEQ TBool t
+buildEqs And t = return $ Data.Set.singleton $ TEQ t $ binaryOpType TBool
+buildEqs Or t = return $ Data.Set.singleton $ TEQ t $ binaryOpType TBool
+buildEqs Cons t = do a <- freshTVar
+                     return $ Data.Set.singleton $ TEQ t (TFun a (TFun (TList a) (TList a)))
+buildEqs (List xs) t = do a <- freshTVar
+                          Data.Set.unions <$> (Data.Set.singleton (TEQ t (TList a)):) <$> (forM xs $ \x -> buildEqs x a)
+buildEqs (IfElse b e1 e2) t = do bEqs <- buildEqs b TBool
+                                 eqs1 <- buildEqs e1 t
+                                 eqs2 <- buildEqs e2 t
+                                 return $ bEqs `Data.Set.union` eqs1 `Data.Set.union` eqs2
+buildEqs Eq t = return $ Data.Set.singleton $ TEQ t (TFun TInt (TFun TInt TBool))
+buildEqs Leq t = return $ Data.Set.singleton $ TEQ t (TFun TInt (TFun TInt TBool))
+buildEqs e _ = error $ show e
+
+
+binaryOpType :: Type -> Type
+binaryOpType t = TFun t (TFun t t)
+
+unifyAll :: Data.Set.Set TEQ -> Either Substitution TypeError
+unifyAll = Data.Set.foldl (\x (TEQ t1 t2) -> onSuccess x $ \s ->
+                                              onSuccess (unify (TEQ (apply s t1) (apply s t2))) $ \s' ->
+                                                Left $ compose s' s) (Left (Data.Map.empty))
+
+type Substitution = Map Int Type
+
+data TEQ = TEQ Type Type
+  deriving (Eq, Ord)
+
+instance Show TEQ where
+  show (TEQ t1 t2) = show t1 ++ " = " ++ show t2
+
+apply :: Substitution -> Type -> Type
+apply s t@(TVar x) = Data.Map.findWithDefault t x s
+apply _ TInt = TInt
+apply _ TBool = TBool
+apply s (TList t) = TList (apply s t)
+apply s (TFun t1 t2) = TFun (apply s t1) (apply s t2)
+
+compose :: Substitution -> Substitution -> Substitution
+compose s1 s2 = (Data.Map.filterWithKey (\i t -> case t of TVar j -> i /= j; _ -> True)) $ Data.Map.map (apply s1) s2 `Data.Map.union` s1
+
+onSuccess :: Either Substitution TypeError -> (Substitution -> Either Substitution TypeError) -> Either Substitution TypeError
+onSuccess r@(Right  _) _ = r
+onSuccess (Left l) f = f l
+
+unify :: TEQ -> Either Substitution TypeError
+unify (TEQ t1@(TVar x) t2) = if not $ x `Data.Set.member` ftv t2 then
+                               Left $ Data.Map.singleton x t2
+                             else if t1 == t2 then
+                               Left $ Data.Map.empty
+                             else
+                               Right $ TE t1 t2
+unify (TEQ TInt TInt) = Left $ Data.Map.empty
+unify (TEQ TBool TBool) = Left $ Data.Map.empty
+
+unify (TEQ t x@(TVar _)) = unify (TEQ x t)
+unify (TEQ (TFun t1 t2) (TFun t1' t2')) = let s2 = unify (TEQ t2 t2') in
+                                           onSuccess s2 $ \s ->
+                                             onSuccess (unify (TEQ (apply s t1) (apply s t1'))) $ \s' ->
+                                               Left $ compose s' s
+
+unify (TEQ (TList t1) (TList t2)) = unify (TEQ t1 t2)
+unify (TEQ t1 t2) = Right $ TE t1 t2

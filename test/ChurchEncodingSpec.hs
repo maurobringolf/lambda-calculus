@@ -4,7 +4,8 @@ import Test.Hspec
 
 import ChurchEncoding.Parser
 import ChurchEncoding.Compiler
-import ChurchEncoding.TypeChecker
+import ChurchEncoding.TypeChecker.TypeChecker
+import ChurchEncoding.TypeChecker.Type(Type(..), equalsUpToRenaming)
 import ChurchEncoding.Ast
 
 import qualified Ast as LC
@@ -24,7 +25,7 @@ testProgramOutput path result = do
 testExpType eCode t = do
   let e = parseE eCode
   it (show e ++ "::" ++ show t) $ do
-    equalsUpToRenaming (inferType empty e) t `shouldBe` True
+    equalsUpToRenaming (inferType e empty) t `shouldBe` True
 
 testUnificationSuccess eq s = testUnification eq $ Left s
 
@@ -94,15 +95,6 @@ main = do
       testExpType "\\x -> \\a -> a + 1" (TFun (TVar 2) (TFun TInt TInt))
       testExpType "foldr (\\x -> \\a -> a + 1)" (TFun TInt (TFun (TList (TVar 0)) TInt))
       testExpType "foldr (\\x -> \\a -> a + 1) 0" (TFun (TList (TVar 0)) TInt)
-
-
-      it "buildEqs" $ do
-        let (te,ctx) = freshTVar empty
-        te `shouldBe` TVar 1
-        ctx `shouldBe` Data.Map.singleton "$$dummy1" (TVar 1)
-        buildEqs ctx (parseE "\\x -> x") te `shouldBe` Data.Set.fromList [TEQ (TFun (TVar 2) (TVar 3)) (TVar 1), TEQ (TVar 2) (TVar 3)]
-        unifyAll (buildEqs ctx (parseE "\\x -> x") te) `shouldBe` Left (Data.Map.fromList [(1, (TFun (TVar 3) (TVar 3))),(2, TVar 3)])
-
       testExpType "\\x -> x" (TFun (TVar 3) (TVar 3))
       testExpType "\\x -> 1" (TFun (TVar 2) TInt)
       testExpType "\\x -> \\y -> x y" (TFun (TFun (TVar 0) (TVar 1)) (TFun (TVar 0) (TVar 1)))

@@ -28,7 +28,9 @@ library
       ChurchEncoding.Ast
       ChurchEncoding.Compiler
       ChurchEncoding.Parser
-      ChurchEncoding.TypeChecker
+      ChurchEncoding.TypeChecker.Type
+      ChurchEncoding.TypeChecker.TypeChecker
+      ChurchEncoding.TypeChecker.TypeContext
       Interpreter
       Parser
   other-modules:
