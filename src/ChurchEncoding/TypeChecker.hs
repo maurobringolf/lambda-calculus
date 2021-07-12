@@ -7,23 +7,10 @@ import qualified Data.Set
 
 type TypeContext = Map String Type
 
-{-
-freshTVar :: TypeContext -> Type
-freshTVar ctx = let vars = [ x  | (_,TVar x) <- Data.Map.toList ctx ]
-                 in
-                  TVar $ foldr max 0 vars
--}
-
 freshTVar :: TypeContext -> (Type, TypeContext)
 freshTVar ctx = let vars = [ x  | (_,TVar x) <- Data.Map.toList ctx ]
                     fresh = 1 + (foldr max 0 vars)
                  in (TVar fresh, Data.Map.insert ("$$dummy" ++ show fresh) (TVar fresh) ctx)
-
---freshTVars :: TypeContext -> ([Type], TypeContext)
---freshTVars ctx = map TVar [(foldr max 0 [ x  | (_,TVar x) <- Data.Map.toList ctx ])..]
---freshTVars ctx = foldr (\_ (xs,c) -> let (x,c') = freshTVar c
- --                                     in (x:xs, c')) ([], ctx) [1..]
-
 
 insertFreshTVar :: TypeContext -> String -> TypeContext
 insertFreshTVar ctx x = let (ft,ctx') = freshTVar ctx
@@ -184,79 +171,3 @@ unify (TEQ (TFun t1 t2) (TFun t1' t2')) = let s2 = unify (TEQ t2 t2') in
 unify (TEQ (TList t1) (TList t2)) = unify (TEQ t1 t2)
 unify (TEQ t1 t2) = Right $ TE t1 t2
 
-{-
-
-
-
-
-inferType :: TypeContext -> Exp -> (Type, TypeContext)
-inferType ctx (Var x) = case Data.Map.lookup x ctx of
-  Just t -> (t, empty)
-  Nothing -> error $ "Variable not in context: " ++ x
-
-inferType ctx (Abs x e) = let tx = freshTVar ctx
-                              (te, ctx') = inferType (insert x tx ctx) e
-                           in
-                            (TFun (findWithDefault tx x ctx')  te, ctx')
-
-inferType ctx (App e1 e2) = let (t1,subst1) = inferType ctx e1
-                                ctx' = applyCtx subst1 ctx
-                                (t2,subst2) = inferType ctx' e2
-                                ctx'' = applyCtx subst2 ctx'
-                                a1:a2:_ = freshTVars ctx''
-                                subst = unify [(TFun a1 a2, t1), (a1,t2)] `union` subst1 `union` subst2
-                             in
-                                (apply subst a2, subst)
-
-inferType ctx Add = (TFun TInt (TFun TInt TInt), empty)
-inferType ctx Sub = (TFun TInt (TFun TInt TInt), empty)
-inferType ctx (Numeral _) = (TInt, empty)
-inferType ctx (Boolean _) = (TBool, empty)
-inferType ctx Cons = let a1:_ = freshTVars ctx in
-  ((TFun a1 (TFun (TList a1) (TList a1))), empty)
-
-inferType ctx (List es) = let ts = map (inferType ctx) es
-                           in
-                              -- TODO
-                              (TList TInt, empty)
-inferType ctx Foldr = let a:b:_ = freshTVars ctx in
-  (TFun (TFun a (TFun b b)) (TFun b (TFun (TList a) b)), empty)
-
-inferType ctx (IfElse b e1 e2) = let (bt,sb) = inferType ctx b
-                                     (e1t,se1) = inferType ctx e1
-                                     (e2t,se2) = inferType ctx e2
-                                  in
-                                    (e1t, unify [(bt, TBool), (e1t, e2t)] `union` sb `union` se1 `union` se2)
-inferType ctx And = (TFun TBool (TFun TBool TBool), empty)
-inferType ctx Or = (TFun TBool (TFun TBool TBool), empty)
-inferType ctx Leq = (TFun TInt (TFun TInt TBool), empty)
-inferType ctx Eq = (TFun TInt (TFun TInt TBool), empty)
-inferType ctx e = error $ "Cannot typecheck term: " ++ show e
-
-unify :: [(Type, Type)] -> Substitution
-unify [] = empty
-unify ((t1,t2):rest) = let subst = unify rest
-                        in subst `union` unifyOne (apply subst t1) (apply subst t2)
-                      
-
-unifyOne :: Type -> Type -> Substitution
-unifyOne (TVar x) (TVar y) = if x == y then empty else singleton x (TVar y)
-unifyOne (TVar x) t = singleton x t -- TODO check for free vars, x must not be (free) in t
-unifyOne t (TVar x) = singleton x t -- TODO check for free vars, x must not be (free) in t
-unifyOne (TFun t1 t2) (TFun t1' t2') = unify [(t1,t1'), (t2,t2')]
-unifyOne TInt TInt = empty
-unifyOne TBool TBool = empty
-unifyOne (TList t1) (TList t2) = unifyOne t1 t2
-unifyOne t1 t2 = error $ "Cannot unify types: " ++ show t1 ++ ", " ++ show t2
-
-apply :: Substitution -> Type -> Type
-apply subst t@(TVar x) = findWithDefault t x subst
-apply subst (TFun t1 t2) = TFun (apply subst t1) (apply subst t2)
-apply subst TInt = TInt
-apply subst TBool = TBool
-apply subst (TList t) = TList (apply subst t)
-
-applyCtx :: Substitution -> TypeContext -> TypeContext
-applyCtx subst = Data.Map.map (apply subst)
-
--}
