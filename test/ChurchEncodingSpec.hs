@@ -24,6 +24,7 @@ testProgramOutput path result = do
 
 testExpType eCode t = do
   let e = parseE eCode
+--  runIO $ putStrLn $ show $ inferType e empty
   it (show e ++ "::" ++ show t) $ do
     equalsUpToRenaming (inferType e empty) t `shouldBe` True
 
@@ -67,6 +68,7 @@ main = do
       testProgramOutput "programs/or.hs" True
       testProgramOutput "programs/infinite.hs" [0::Integer, 1, 2]
       testProgramOutput "programs/polymorph.hs" True
+      testProgramOutput "programs/filter.hs" [(7::Integer), 4]
 
     describe "unify" $ do
 
@@ -106,6 +108,7 @@ main = do
       testExpType "\\x -> True && (x || x)" (TFun TBool TBool)
       testExpType "[1]" (TList TInt)
       testExpType "2:[1]" (TList TInt)
+      testExpType "\\f xs -> foldr (\\x ys -> if f x then x:ys else ys) [] xs" (TFun (TFun (TVar 0) TBool) (TFun (TList (TVar 0)) (TList (TVar 0))))
 
     describe "ChurchEncoding.parse" $ do
 

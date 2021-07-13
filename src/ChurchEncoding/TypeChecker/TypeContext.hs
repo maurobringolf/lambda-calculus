@@ -1,8 +1,9 @@
 module ChurchEncoding.TypeChecker.TypeContext where
 
-import ChurchEncoding.TypeChecker.Type(Type(..))
+import ChurchEncoding.TypeChecker.Type(Type(..), ftv)
 
 import qualified Data.Map
+import qualified Data.Set
 
 type TypeContext = Data.Map.Map String Type
 
@@ -41,6 +42,6 @@ withShadow x t (WTC f) = WTC $ \ctx -> let xOld = Data.Map.lookup x ctx
                                         in (ctx'', r)
 
 freshTVar :: WithTypeContext Type
-freshTVar = WTC $ \ctx -> let vars = [ x  | (_,TVar x) <- Data.Map.toList ctx ]
+freshTVar = WTC $ \ctx -> let vars = [ i  | (_,t) <- Data.Map.toList ctx, i <- Data.Set.toList $ ftv t ]
                               fresh = 1 + (foldr max 0 vars)
                            in (Data.Map.insert ("$$dummy" ++ show fresh) (TVar fresh) ctx, TVar fresh)

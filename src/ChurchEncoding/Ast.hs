@@ -20,6 +20,7 @@ data Exp = Var String
          | List [Exp]
          | Cons
          | Foldr
+         | Tail
   deriving (Show, Eq)
 
 data Definition = Def String Exp
@@ -46,6 +47,7 @@ freeVars e = case e of
   And -> Data.Set.empty
   Cons -> Data.Set.empty
   Foldr -> Data.Set.empty
+  Tail -> Data.Set.empty
   List xs -> foldr Data.Set.union Data.Set.empty $ map freeVars xs
   Sub -> Data.Set.empty
   Eq -> Data.Set.empty

@@ -19,10 +19,21 @@ getMainType p = case Data.Map.lookup "main" (typeCheck p) of
 typeCheck :: Program -> TypeContext
 typeCheck (P defs) = runWithTypeContext (do
   forM_ defs $ \(Def d e) -> do
-    a <- freshTVar
+    --a <- freshTVar
     ctx <- getCtx
-    insertCtx d (inferType e (Data.Map.insert d a ctx))
+    --insertCtx d (inferType e (Data.Map.insert d a ctx))
+    insertCtx d (inferTypeNamed d e ctx)
   getCtx) (Data.Map.singleton "undefined" $ TVar 0)
+
+inferTypeNamed :: String -> Exp -> TypeContext -> Type
+inferTypeNamed n e = runWithTypeContext $ do
+  a <- freshTVar
+  withShadow n a $ do
+    eqs <- buildEqs e a
+    let s = unifyAll eqs
+    return $ case s of
+      Right s -> apply s a
+      Left r -> error $ show r
 
 inferType :: Exp -> TypeContext -> Type
 inferType e = runWithTypeContext $ do
@@ -54,6 +65,8 @@ buildEqs Mult t = return $ Data.Set.singleton $ TEQ t $ binaryOpType TInt
 buildEqs Foldr t = do a1 <- freshTVar
                       a2 <- freshTVar
                       return $ Data.Set.singleton $ TEQ t (TFun (TFun a1 (TFun a2 a2)) (TFun a2 (TFun (TList a1) a2)))
+buildEqs Tail t = do a <- freshTVar
+                     return $ Data.Set.singleton $ TEQ t (TFun (TList a) (TList a))
 
 buildEqs (Numeral _) t = return $ Data.Set.singleton $ TEQ TInt t
 buildEqs (Boolean _) t = return $ Data.Set.singleton $ TEQ TBool t
@@ -69,6 +82,7 @@ buildEqs (IfElse b e1 e2) t = do bEqs <- buildEqs b TBool
                                  return $ bEqs `Data.Set.union` eqs1 `Data.Set.union` eqs2
 buildEqs Eq t = return $ Data.Set.singleton $ TEQ t (TFun TInt (TFun TInt TBool))
 buildEqs Leq t = return $ Data.Set.singleton $ TEQ t (TFun TInt (TFun TInt TBool))
+buildEqs Geq t = return $ Data.Set.singleton $ TEQ t (TFun TInt (TFun TInt TBool))
 buildEqs e _ = error $ show e
 
 

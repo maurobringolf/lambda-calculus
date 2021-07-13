@@ -20,7 +20,7 @@ lexer = P.makeTokenParser emptyDef{ commentStart = "--"
                                   , reservedOpNames = ["+", "*", "-", "==", "<=", ">=", ":"]
                                   , reservedNames = ["true", "false", "nop",
                                                       "if", "then", "else", "fi",
-                                                      "while", "do", "od", "True", "False"]
+                                                      "while", "do", "od", "True", "False", "foldr", "tail"]
                                   }
 
 P.TokenParser{ P.parens = m_parens
@@ -64,6 +64,8 @@ parseAtom :: Parser Exp
 parseAtom = parseKeyword <|> parseList <|> parseBool <|> parseNum <|> parseVar <|> m_parens parseExp
 
 parseKeyword = try (m_symbol "foldr" >> return Foldr)
+           <|> try (m_symbol "tail" >> return Tail)
+
 
 parseList :: Parser Exp
 parseList = do m_symbol "["

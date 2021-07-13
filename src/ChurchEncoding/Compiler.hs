@@ -81,6 +81,7 @@ compile e = case e of
   (SS.List xs) -> repLC $ map compile xs
   SS.Cons -> churchCons
   SS.Foldr -> Abs "f" $ Abs "b" $ Abs "xs" $ (App (App (Var "xs") (Var "f")) (Var "b"))
+  SS.Tail -> parse "(λl.λc.λn.l (λh.λt.λg.g h (t c)) (λt.n) (λh.λt.t))"
 
 churchCons :: Term
 churchCons = parse churchCons'
