@@ -6,7 +6,7 @@ import ChurchEncoding.Ast
 import Data.Map(Map)
 import qualified Data.Map
 import qualified Data.Set
-import Control.Monad(forM_, forM)
+import Control.Monad(forM_, forM, foldM)
 
 data TypeError = TE Type Type
   deriving (Show, Eq)
@@ -30,8 +30,8 @@ inferType e = runWithTypeContext $ do
   eqs <- buildEqs e a
   let s = unifyAll eqs
   return $ case s of
-    Left s -> apply s a
-    Right r -> error $ show r
+    Right s -> apply s a
+    Left r -> error $ show r
 
 buildEqs :: Exp -> Type -> WithTypeContext (Data.Set.Set TEQ)
 buildEqs (Var x) t = do ctx <- getCtx
@@ -75,15 +75,16 @@ buildEqs e _ = error $ show e
 binaryOpType :: Type -> Type
 binaryOpType t = TFun t (TFun t t)
 
-unifyAll :: Data.Set.Set TEQ -> Either Substitution TypeError
-unifyAll = Data.Set.foldl (\x (TEQ t1 t2) -> onSuccess x $ \s ->
-                                              onSuccess (unify (TEQ (apply s t1) (apply s t2))) $ \s' ->
-                                                Left $ compose s' s) (Left (Data.Map.empty))
+unifyAll :: Data.Set.Set TEQ -> Either TypeError Substitution
+unifyAll = foldM (\s eq -> unify (applyTEQ s eq) >>= return . flip compose s) Data.Map.empty
 
 type Substitution = Map Int Type
 
 data TEQ = TEQ Type Type
   deriving (Eq, Ord)
+
+applyTEQ :: Substitution -> TEQ -> TEQ
+applyTEQ s (TEQ t1 t2) = TEQ (apply s t1) (apply s t2)
 
 instance Show TEQ where
   show (TEQ t1 t2) = show t1 ++ " = " ++ show t2
@@ -98,25 +99,24 @@ apply s (TFun t1 t2) = TFun (apply s t1) (apply s t2)
 compose :: Substitution -> Substitution -> Substitution
 compose s1 s2 = (Data.Map.filterWithKey (\i t -> case t of TVar j -> i /= j; _ -> True)) $ Data.Map.map (apply s1) s2 `Data.Map.union` s1
 
-onSuccess :: Either Substitution TypeError -> (Substitution -> Either Substitution TypeError) -> Either Substitution TypeError
-onSuccess r@(Right  _) _ = r
-onSuccess (Left l) f = f l
+onSuccess :: Either TypeError Substitution -> (Substitution -> Either TypeError Substitution) -> Either TypeError Substitution
+onSuccess r@(Left  _) _ = r
+onSuccess (Right l) f = f l
 
-unify :: TEQ -> Either Substitution TypeError
+unify :: TEQ -> Either TypeError Substitution
 unify (TEQ t1@(TVar x) t2) = if not $ x `Data.Set.member` ftv t2 then
-                               Left $ Data.Map.singleton x t2
+                               Right $ Data.Map.singleton x t2
                              else if t1 == t2 then
-                               Left $ Data.Map.empty
+                               Right $ Data.Map.empty
                              else
-                               Right $ TE t1 t2
-unify (TEQ TInt TInt) = Left $ Data.Map.empty
-unify (TEQ TBool TBool) = Left $ Data.Map.empty
+                               Left $ TE t1 t2
+unify (TEQ TInt TInt) = Right $ Data.Map.empty
+unify (TEQ TBool TBool) = Right $ Data.Map.empty
 
 unify (TEQ t x@(TVar _)) = unify (TEQ x t)
-unify (TEQ (TFun t1 t2) (TFun t1' t2')) = let s2 = unify (TEQ t2 t2') in
-                                           onSuccess s2 $ \s ->
-                                             onSuccess (unify (TEQ (apply s t1) (apply s t1'))) $ \s' ->
-                                               Left $ compose s' s
+unify (TEQ (TFun t1 t2) (TFun t1' t2')) = do s <- unify (TEQ t2 t2')
+                                             s' <- unify $ applyTEQ s $ TEQ t1 t1'
+                                             return $ compose s' s
 
 unify (TEQ (TList t1) (TList t2)) = unify (TEQ t1 t2)
-unify (TEQ t1 t2) = Right $ TE t1 t2
+unify (TEQ t1 t2) = Left $ TE t1 t2

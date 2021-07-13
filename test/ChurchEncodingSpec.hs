@@ -27,7 +27,7 @@ testExpType eCode t = do
   it (show e ++ "::" ++ show t) $ do
     equalsUpToRenaming (inferType e empty) t `shouldBe` True
 
-testUnificationSuccess eq s = testUnification eq $ Left s
+testUnificationSuccess eq s = testUnification eq $ Right s
 
 testParseHaskell code eExp = do
   let eAct = parseE code
@@ -41,8 +41,8 @@ testParseProgram code pExp = do
 
 testUnification eq x = do
   it (show eq) $ case x of
-    Left res -> (unify eq `shouldBe` Left (fromList res))
-    Right err -> (unify eq `shouldBe` Right err)
+    Right res -> (unify eq `shouldBe` Right (fromList res))
+    Left err -> (unify eq `shouldBe` Left err)
 
 main :: IO ()
 main = do
