@@ -19,9 +19,7 @@ getMainType p = case Data.Map.lookup "main" (typeCheck p) of
 typeCheck :: Program -> TypeContext
 typeCheck (P defs) = runWithTypeContext (do
   forM_ defs $ \(Def d e) -> do
-    --a <- freshTVar
     ctx <- getCtx
-    --insertCtx d (inferType e (Data.Map.insert d a ctx))
     insertCtx d (inferTypeNamed d e ctx)
   getCtx) (Data.Map.singleton "undefined" $ TVar 0)
 
