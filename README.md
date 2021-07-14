@@ -12,6 +12,7 @@ This repository contains my hackery based on this idea:
 1. A [parser](https://github.com/maurobringolf/lambda-calculus/blob/master/src/Parser.hs) and [interpreter](https://github.com/maurobringolf/lambda-calculus/blob/master/src/Interpreter.hs) for LC written in Haskell
 2. A [compiler](https://github.com/maurobringolf/lambda-calculus/blob/master/src/ChurchEncoding/Compiler.hs) for a subset of Haskell encoding into LC
 3. An [interpreter](https://github.com/maurobringolf/lambda-calculus/blob/master/programs/lazy-eval.hs) for LC, written in the Haskell subset supported by (2)
+4. A [lifting procedure](going-the-other-way-around) to embed and execute LC programs directly in Haskell.
 
 Of course everything is terribly slow and utterly impractical, **BUT** compiling (3) with (2) produces an LC interpreter (the `lazyEval` function) in LC:
 
@@ -36,7 +37,7 @@ Of course everything is terribly slow and utterly impractical, **BUT** compiling
 	(λx1.λx2.λAbs.λApp.λVar.Abs x1 x2)
 ```
 
-Now this is clearly glorious and was totally worth the effort.
+Now this is clearly glorious and totally worth the effort.
 
 ## Example
 
@@ -171,7 +172,7 @@ data List = Cons Int List | Nil
 
 ---
 
-## Slightly confusing section
+## Going the other way around
 
 Since Lambda Calculus is a subset of Haskell, we can lift compiled programs back into Haskell.
 The result of this procedure is a hopefully equivalent, larger, slower and rather unreadable version of the input program.
