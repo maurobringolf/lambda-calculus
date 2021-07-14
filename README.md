@@ -2,8 +2,43 @@
 
 [![test](https://github.com/maurobringolf/lambda-calculus/actions/workflows/test.yml/badge.svg)](https://github.com/maurobringolf/lambda-calculus/actions/workflows/test.yml)
 
-A small subset of Haskell translated into and interpreted as Lambda Calculus, implemented in Haskell.
-I know that real Haskell is not run this way and this is just a personal study project.
+A small subset of Haskell translated into and interpreted as Lambda Calculus (LC), implemented in Haskell.
+
+My curiosity for this project came during a lecture when the professor said "We will implement Haskell in Haskell" but then only presented an LC interpreter in Haskell.
+Although LC is only the theoretical base and Haskell implementations use other techniques,
+I still wanted to see an actual Haskell interpreter based on LC.
+This repository contains my hackery based on this idea:
+
+1. A [parser](https://github.com/maurobringolf/lambda-calculus/blob/master/src/Parser.hs) and [interpreter](https://github.com/maurobringolf/lambda-calculus/blob/master/src/Interpreter.hs) for LC written in Haskell
+2. A [compiler](https://github.com/maurobringolf/lambda-calculus/blob/master/src/ChurchEncoding/Compiler.hs) for a subset of Haskell encoding into LC
+3. An [interpreter](https://github.com/maurobringolf/lambda-calculus/blob/master/programs/lazy-eval.hs) for LC, written in the Haskell subset supported by (2)
+
+Of course everything is terribly slow and utterly impractical, **BUT** compiling (3) with (2) produces an LC interpreter (the `lazyEval` function) in LC:
+
+```
+(λAbs.(λApp.(λVar.(λlength.(λhead.(λmap.(λtake.(λfilter.(λconcat.(λnot.(λdelete.(λdelete.(λelem.(λfresh.(λfreeVars.(λsubst.(λlazyEval.lazyEval)
+	((λf.(λx.f (x x)) (λx.f (x x))) (λlazyEval.λe.e (λx.λe.Abs x e) (λe1.λe2.lazyEval e1 (λx.λe.lazyEval (subst x e e2)) (λe1a.λe1b.App e1 e2) (λx.App e1 e2)) (λx.Var x))))
+	((λf.(λx.f (x x)) (λx.f (x x))) (λsubst.λx.λe.λt.e (λy.λe2.(λm.λn.(λp.λq.p q p) ((λm.λn.(λn.n (λx.λa.λb.b) (λa.λb.a)) ((λm.λn.n (λn.λf.λx.n (λg.λh.h (g f)) (λu.x) (λu.u)) m) m n)) m n) ((λm.λn.(λn.n (λx.λa.λb.b) (λa.λb.a)) ((λm.λn.n (λn.λf.λx.n (λg.λh.h (g f)) (λu.x) (λu.u)) m) m n)) n m)) x y (Abs y e2) (elem y (freeVars t) (Abs (fresh (concat (freeVars e2) (freeVars t))) (subst x (subst y e2 (Var (fresh (concat (freeVars e2) (freeVars t))))) t)) (Abs y (subst x e2 t)))) (λe1.λe2.App (subst x e1 t) (subst x e2 t)) (λy.(λm.λn.(λp.λq.p q p) ((λm.λn.(λn.n (λx.λa.λb.b) (λa.λb.a)) ((λm.λn.n (λn.λf.λx.n (λg.λh.h (g f)) (λu.x) (λu.u)) m) m n)) m n) ((λm.λn.(λn.n (λx.λa.λb.b) (λa.λb.a)) ((λm.λn.n (λn.λf.λx.n (λg.λh.h (g f)) (λu.x) (λu.u)) m) m n)) n m)) x y t (Var y)))))
+	((λf.(λx.f (x x)) (λx.f (x x))) (λfreeVars.λe.e (λx.λt.delete x (freeVars t)) (λt1.λt2.concat (freeVars t1) (freeVars t2)) (λx.λc.λn.c x n))))
+	(λxs.(λm.λn.λS.λZ.m S (n S Z)) (λS.λZ.S Z) ((λf.λb.λxs.xs f b) (λx.λc.(λn.λm.(λn.n (λx.λa.λb.b) (λa.λb.a)) ((λm.λn.n (λn.λf.λx.n (λg.λh.h (g f)) (λu.x) (λu.u)) m) m n)) x c x c) (λS.λZ.Z) xs)))
+	(λy.λxs.(λf.λb.λxs.xs f b) (λx.λt.(λp.λq.p p q) t ((λm.λn.(λp.λq.p q p) ((λm.λn.(λn.n (λx.λa.λb.b) (λa.λb.a)) ((λm.λn.n (λn.λf.λx.n (λg.λh.h (g f)) (λu.x) (λu.u)) m) m n)) m n) ((λm.λn.(λn.n (λx.λa.λb.b) (λa.λb.a)) ((λm.λn.n (λn.λf.λx.n (λg.λh.h (g f)) (λu.x) (λu.u)) m) m n)) n m)) x y)) (λa.λb.b) xs))
+	(λx.filter (λy.not ((λm.λn.(λp.λq.p q p) ((λm.λn.(λn.n (λx.λa.λb.b) (λa.λb.a)) ((λm.λn.n (λn.λf.λx.n (λg.λh.h (g f)) (λu.x) (λu.u)) m) m n)) m n) ((λm.λn.(λn.n (λx.λa.λb.b) (λa.λb.a)) ((λm.λn.n (λn.λf.λx.n (λg.λh.h (g f)) (λu.x) (λu.u)) m) m n)) n m)) y x))))
+	((λf.(λx.f (x x)) (λx.f (x x))) (λdelete.λx.λxs.(λm.λn.(λp.λq.p q p) ((λm.λn.(λn.n (λx.λa.λb.b) (λa.λb.a)) ((λm.λn.n (λn.λf.λx.n (λg.λh.h (g f)) (λu.x) (λu.u)) m) m n)) m n) ((λm.λn.(λn.n (λx.λa.λb.b) (λa.λb.a)) ((λm.λn.n (λn.λf.λx.n (λg.λh.h (g f)) (λu.x) (λu.u)) m) m n)) n m)) (length xs) (λS.λZ.Z) (λc.λn.n) ((λm.λn.(λp.λq.p q p) ((λm.λn.(λn.n (λx.λa.λb.b) (λa.λb.a)) ((λm.λn.n (λn.λf.λx.n (λg.λh.h (g f)) (λu.x) (λu.u)) m) m n)) m n) ((λm.λn.(λn.n (λx.λa.λb.b) (λa.λb.a)) ((λm.λn.n (λn.λf.λx.n (λg.λh.h (g f)) (λu.x) (λu.u)) m) m n)) n m)) (head xs) x ((λl.λc.λn.l (λh.λt.λg.g h (t c)) (λt.n) (λh.λt.t)) xs) ((λh.λt.λc.λn.c h (t c n)) (head xs) (delete x ((λl.λc.λn.l (λh.λt.λg.g h (t c)) (λt.n) (λh.λt.t)) xs)))))))
+	(λb.b (λa.λb.b) (λa.λb.a)))
+	((λf.(λx.f (x x)) (λx.f (x x))) (λconcat.λxs.λys.(λm.λn.(λp.λq.p q p) ((λm.λn.(λn.n (λx.λa.λb.b) (λa.λb.a)) ((λm.λn.n (λn.λf.λx.n (λg.λh.h (g f)) (λu.x) (λu.u)) m) m n)) m n) ((λm.λn.(λn.n (λx.λa.λb.b) (λa.λb.a)) ((λm.λn.n (λn.λf.λx.n (λg.λh.h (g f)) (λu.x) (λu.u)) m) m n)) n m)) (length xs) (λS.λZ.Z) ys ((λh.λt.λc.λn.c h (t c n)) (head xs) (concat ((λl.λc.λn.l (λh.λt.λg.g h (t c)) (λt.n) (λh.λt.t)) xs) ys)))))
+	(λf.(λf.λb.λxs.xs f b) (λx.λys.f x ((λh.λt.λc.λn.c h (t c n)) x ys) ys) (λc.λn.n)))
+	((λf.(λx.f (x x)) (λx.f (x x))) (λtake.λn.λxs.(λm.λn.(λp.λq.p q p) ((λm.λn.(λn.n (λx.λa.λb.b) (λa.λb.a)) ((λm.λn.n (λn.λf.λx.n (λg.λh.h (g f)) (λu.x) (λu.u)) m) m n)) m n) ((λm.λn.(λn.n (λx.λa.λb.b) (λa.λb.a)) ((λm.λn.n (λn.λf.λx.n (λg.λh.h (g f)) (λu.x) (λu.u)) m) m n)) n m)) n (λS.λZ.Z) (λc.λn.n) ((λh.λt.λc.λn.c h (t c n)) (head xs) (take ((λm.λn.n (λn.λf.λx.n (λg.λh.h (g f)) (λu.x) (λu.u)) m) n (λS.λZ.S Z)) ((λl.λc.λn.l (λh.λt.λg.g h (t c)) (λt.n) (λh.λt.t)) xs))))))
+	(λf.λxs.(λf.λb.λxs.xs f b) (λx.λys.(λh.λt.λc.λn.c h (t c n)) (f x) ys) (λc.λn.n) xs))
+	((λf.λb.λxs.xs f b) (λa.λb.a) undefined))
+	((λf.λb.λxs.xs f b) (λx.λa.(λm.λn.λS.λZ.m S (n S Z)) a (λS.λZ.S Z)) (λS.λZ.Z)))
+	(λx1.λAbs.λApp.λVar.Var x1))
+	(λx1.λx2.λAbs.λApp.λVar.App x1 x2))
+	(λx1.λx2.λAbs.λApp.λVar.Abs x1 x2)
+```
+
+Now this is clearly glorious and was totally worth the effort.
+
+## Example
 
 As a first example, this program:
 
@@ -42,8 +77,6 @@ Which is then evaluated and interpreted according to its type `[Int]`:
 ```
 [2,4,6]
 ```
-
-If you are confused, don't read the [slightly confusing section](slightly-confusing-section).
 
 ## Usage
 
