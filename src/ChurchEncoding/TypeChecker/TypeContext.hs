@@ -41,6 +41,10 @@ withShadow x t (WTC f) = WTC $ \ctx -> let xOld = Data.Map.lookup x ctx
                                            ctx'' = case xOld of Nothing -> Data.Map.delete x ctx'; Just t' -> Data.Map.insert x t' ctx'
                                         in (ctx'', r)
 
+withShadows :: [(String,Type)] -> WithTypeContext a -> WithTypeContext a
+withShadows ((x,t):xs) = (withShadow x t) . (withShadows xs)
+withShadows [] = id
+
 freshTVar :: WithTypeContext Type
 freshTVar = WTC $ \ctx -> let vars = [ i  | (_,t) <- Data.Map.toList ctx, i <- Data.Set.toList $ ftv t ]
                               fresh = 1 + (foldr max 0 vars)

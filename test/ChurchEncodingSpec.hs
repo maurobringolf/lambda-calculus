@@ -69,6 +69,11 @@ main = do
       testProgramOutput "programs/infinite.hs" [0::Integer, 1, 2]
       testProgramOutput "programs/polymorph.hs" True
       testProgramOutput "programs/filter.hs" [(7::Integer), 4]
+      testProgramOutput "programs/adt.hs" (2::Integer)
+      testProgramOutput "programs/adt2.hs" (2::Integer)
+      testProgramOutput "programs/adt3.hs" (2::Integer)
+      testProgramOutput "programs/adt4.hs" [8,1::Integer,2]
+      testProgramOutput "programs/preorder.hs" [11,2::Integer, 7]
 
     describe "unify" $ do
 
@@ -128,7 +133,7 @@ main = do
       testParseHaskell "\\x -> 1 + 2" (Abs "x" (App (App Add (Numeral 1)) (Numeral 2))) 
       testParseHaskell "\\x -> 2 - (0x23 + 2)" (Abs "x" (App (App Sub (Numeral 2)) (App (App Add (Numeral 35)) (Numeral 2)))) 
       testParseHaskell "\\x y -> x" (Abs "x" (Abs "y" (Var "x")))
-      testParseProgram "f x y = y" (P [Def "f" (Abs "x" (Abs "y" (Var "y")))])
+      testParseProgram "f x y = y" (P [Def "f" (Abs "x" (Abs "y" (Var "y")))] [])
 
     describe "ChurchEncoding.eval" $ do
       it "eval '0''" $

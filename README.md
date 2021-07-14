@@ -113,6 +113,29 @@ For more examples of the supported subset, have a look at `programs/`.
 Most of the used encoding is described on the Wikipedia page on [Church Encoding](https://en.wikipedia.org/wiki/Church_encoding).
 For the details of the translation see `src/ChurchEncoding/Compiler.hs`.
 
+### Algebraic Data Types
+
+```hs
+data List = Cons Int List | Nil
+
+{-
+[[Cons]] = (λint.λlist.λCons.λNil.Cons int list)
+[[Nil]]  = (λCons.λNil.Nil)
+
+[[case l of Cons i tl -> e1; Nil -> e2; ]] = [[l]] (λi.λtl.[[e1]]) [[e2]]
+
+[[case (Cons 1 Nil) of Cons i tl -> i; Nil -> 0; ]]
+  = [[Cons 1 Nil]] (λi.λtl.[[i]]) [[0]]
+  = [[Cons 1 Nil]] (λi.λtl.i) 0
+  = ((λint.λlist.λCons.λNil.Cons int list) 1 (λCons.λNil.Nil)) (λi.λtl.i) 0
+  = (λCons.λNil.Cons 1 (λCons.λNil.Nil)) (λi.λtl.i) 0
+  = (λNil.(λi.λtl.i) 1 (λCons.λNil.Nil)) 0
+  = (λi.λtl.i) 1 (λCons.λNil.Nil)
+  = (λtl.1) 1
+  = 1
+-}
+```
+
 ---
 
 ## Slightly confusing section

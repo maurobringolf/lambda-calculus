@@ -1,7 +1,7 @@
 module ChurchEncoding.TypeChecker.TypeChecker where
 
 import ChurchEncoding.TypeChecker.TypeContext
-import ChurchEncoding.TypeChecker.Type(Type(..), ftv)
+import ChurchEncoding.TypeChecker.Type(Type(..), ftv, getArgs)
 import ChurchEncoding.Ast
 import Data.Map(Map)
 import qualified Data.Map
@@ -17,11 +17,29 @@ getMainType p = case Data.Map.lookup "main" (typeCheck p) of
                   Just t -> t
 
 typeCheck :: Program -> TypeContext
-typeCheck (P defs) = runWithTypeContext (do
-  forM_ defs $ \(Def d e) -> do
+typeCheck (P funDefs dataDefs) = runWithTypeContext (do
+  forM_ funDefs $ \(Def d e) -> do
     ctx <- getCtx
     insertCtx d (inferTypeNamed d e ctx)
-  getCtx) (Data.Map.singleton "undefined" $ TVar 0)
+  getCtx) (foldr insertConsTypes (Data.Map.singleton "undefined" $ TVar 0) dataDefs)
+
+insertConsTypes :: DataDef -> TypeContext -> TypeContext
+insertConsTypes (DDef n conss) ctx = foldr (\cons ctx -> (Data.Map.insert (getConsName cons) (inferConsType n cons) ctx)) ctx conss
+
+inferConsType :: String -> Exp -> Type
+inferConsType adt cons = foldr (\x c -> TFun x c) (ADT adt) (go cons)
+  where
+    go e = case e of
+      (Constructor "Int") -> [TInt]
+      (Constructor "Bool") -> [TBool]
+      -- TODO what about other ADT types nested inside an ADT? Need to distinguish constructors of current type from type names of other ADTs
+      -- TODO what about lists
+      (Constructor n) -> if n == adt then [ADT adt] else []
+      (App lhs rhs) -> let lhsT = go lhs
+                           rhsT = go rhs
+                        in
+                          lhsT ++ rhsT
+      x -> error $ show x
 
 inferTypeNamed :: String -> Exp -> TypeContext -> Type
 inferTypeNamed n e = runWithTypeContext $ do
@@ -81,6 +99,24 @@ buildEqs (IfElse b e1 e2) t = do bEqs <- buildEqs b TBool
 buildEqs Eq t = return $ Data.Set.singleton $ TEQ t (TFun TInt (TFun TInt TBool))
 buildEqs Leq t = return $ Data.Set.singleton $ TEQ t (TFun TInt (TFun TInt TBool))
 buildEqs Geq t = return $ Data.Set.singleton $ TEQ t (TFun TInt (TFun TInt TBool))
+-- TODO add typechecking for patterns and 'e'
+buildEqs (CaseOf e ps) t = Data.Set.unions <$> (forM ps $ \(p,x) -> do
+                                                  let vars = getPatternVars p
+                                                      cons = getConsName p
+                                                  ctx <- getCtx
+                                                  let consT = case Data.Map.lookup cons ctx of
+                                                                Nothing -> error $ "Unknown constructor " ++ cons ++ " in pattern."
+                                                                Just consT -> consT
+                                                      argTypes = getArgs consT
+
+                                                  if length argTypes /= length vars then
+                                                    error $ "Incorrect number of arguments in pattern " ++ show p
+                                                  else do
+                                                    withShadows (zip vars argTypes) (buildEqs x t))
+buildEqs (Constructor cons) t' = do ctx <- getCtx
+                                    return $ case Data.Map.lookup cons ctx of
+                                      Nothing -> error $ "Constructor " ++ cons ++ " not in scope."
+                                      Just t -> Data.Set.singleton $ TEQ t t'
 buildEqs e _ = error $ show e
 
 
@@ -107,6 +143,7 @@ apply _ TInt = TInt
 apply _ TBool = TBool
 apply s (TList t) = TList (apply s t)
 apply s (TFun t1 t2) = TFun (apply s t1) (apply s t2)
+apply s (ADT n) = ADT n
 
 compose :: Substitution -> Substitution -> Substitution
 compose s1 s2 = (Data.Map.filterWithKey (\i t -> case t of TVar j -> i /= j; _ -> True)) $ Data.Map.map (apply s1) s2 `Data.Map.union` s1
@@ -131,4 +168,5 @@ unify (TEQ (TFun t1 t2) (TFun t1' t2')) = do s <- unify (TEQ t2 t2')
                                              return $ compose s' s
 
 unify (TEQ (TList t1) (TList t2)) = unify (TEQ t1 t2)
+unify (TEQ (ADT n) (ADT m)) = if n == m then Right Data.Map.empty else Left $ TE (ADT n) (ADT m)
 unify (TEQ t1 t2) = Left $ TE t1 t2

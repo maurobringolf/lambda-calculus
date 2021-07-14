@@ -10,8 +10,8 @@ import qualified Data.Set
 
 import qualified ChurchEncoding.Ast as SS
 import qualified ChurchEncoding.Parser
-import ChurchEncoding.TypeChecker.TypeChecker(getMainType)
-import ChurchEncoding.TypeChecker.Type(Type(..))
+import ChurchEncoding.TypeChecker.TypeChecker(getMainType, inferConsType)
+import ChurchEncoding.TypeChecker.Type(Type(..), getArgs)
 import Ast
 import Parser
 import qualified Interpreter
@@ -37,23 +37,37 @@ exec :: RepresentableLC a => SS.Program -> a
 exec = absLC . Interpreter.lazyEval . compileMain
 
 compileMain :: SS.Program -> Term
-compileMain = compile . buildMain . appendProgram stdLib
+compileMain p = let (SS.P funDefs dataDefs) = appendProgram stdLib p
+                    conss = concatMap compileConstructors dataDefs
+                 in
+                  foldr (\(consName, consExp) e -> App (Abs consName e) consExp) (compile (buildMain' funDefs)) conss
+
+compileConstructors :: SS.DataDef -> [(String, Term)]
+compileConstructors (SS.DDef adt conss) = map (\cons -> let consT = inferConsType adt cons
+                                                            numArgs = length $ getArgs consT
+                                                            args = map (\n -> "x" ++ show n) [1..numArgs]
+                                                         in
+                                                           (SS.getConsName cons, foldr (\c -> Abs c) (foldl App (Var $ SS.getConsName cons) (map Var args)) (args ++ (map SS.getConsName conss)))) conss
 
 stdLib :: SS.Program
 stdLib = ChurchEncoding.Parser.parse $ unpack $(embedFile "lib/stdlib.hs")
 
 appendProgram :: SS.Program -> SS.Program -> SS.Program
-appendProgram (SS.P p1) (SS.P p2) = SS.P (p1 ++ p2)
+appendProgram (SS.P f1 d1) (SS.P f2 d2) = SS.P (f1 ++ f2) (d1 ++ d2)
+
+-- TODO unify those two
+buildMain' :: [SS.FunDef] -> SS.Exp
+buildMain' fs = buildMain (SS.P fs [])
 
 buildMain :: SS.Program -> SS.Exp
-buildMain (SS.P defs) = let ds = map desugarRecursion defs
-                            main = case find ((== "main") . fst) ds of
-                                     Just ("main", e) -> e
-                                     Nothing -> error "No main function given."
-                         in
-                            foldr (\(f,e) m -> SS.App (SS.Abs f m) e) main (filter ((/= "main") . fst) ds)
+buildMain (SS.P defs dataDefs) = let ds = map desugarRecursion defs
+                                     main = case find ((== "main") . fst) ds of
+                                              Just ("main", e) -> e
+                                              Nothing -> error "No main function given."
+                                  in
+                                     foldr (\(f,e) m -> SS.App (SS.Abs f m) e) main (filter ((/= "main") . fst) ds)
 
-desugarRecursion :: SS.Definition -> (String, SS.Exp)
+desugarRecursion :: SS.FunDef -> (String, SS.Exp)
 desugarRecursion (SS.Def f e) = (f, if f `Data.Set.notMember` SS.freeVars e then e else SS.App y (SS.Abs f e))
 
 y :: SS.Exp
@@ -82,6 +96,12 @@ compile e = case e of
   SS.Cons -> churchCons
   SS.Foldr -> Abs "f" $ Abs "b" $ Abs "xs" $ (App (App (Var "xs") (Var "f")) (Var "b"))
   SS.Tail -> parse "(λl.λc.λn.l (λh.λt.λg.g h (t c)) (λt.n) (λh.λt.t))"
+
+  (SS.Constructor cons) -> Var cons
+  (SS.CaseOf e ps) -> let te = compile e
+                          tps = map (\(p,e) -> foldr Abs (compile e) (SS.getPatternVars p)) ps
+                       in
+                        foldl App te tps
 
 churchCons :: Term
 churchCons = parse churchCons'

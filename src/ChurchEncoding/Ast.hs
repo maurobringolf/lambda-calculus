@@ -21,19 +21,37 @@ data Exp = Var String
          | Cons
          | Foldr
          | Tail
-  deriving (Show, Eq)
+         | Constructor String
+         | CaseOf Exp [(Exp, Exp)]
+  deriving (Show, Eq, Ord)
 
-data Definition = Def String Exp
+getConsName :: Exp -> String
+getConsName cons = case cons of
+  (Constructor c) -> c
+  (App lhs rhs) -> getConsName lhs
+
+data FunDef = Def String Exp
   deriving (Eq)
 
-data Program = P [Definition]
+data DataDef = DDef String [Exp]
   deriving (Eq)
 
+data Program = P { funsDefs :: [FunDef]
+                 , dataDefs :: [DataDef] }
+  deriving (Eq)
+
+-- TODO show dataDefs
 instance Show Program where
-  show (P defs) = intercalate "\n" $ map show defs
+  show (P funDefs dataDefs) = intercalate "\n" $ map show funDefs
 
-instance Show Definition where
+instance Show FunDef where
   show (Def name body) = name ++ " = " ++ show body
+
+getPatternVars :: Exp -> [String]
+getPatternVars p = case p of
+  (Var x) -> [x];
+  App p1 p2 -> getPatternVars p1 ++ getPatternVars p2
+  Constructor _ -> []
 
 freeVars :: Exp -> Data.Set.Set String
 freeVars e = case e of
@@ -55,3 +73,5 @@ freeVars e = case e of
   Geq -> Data.Set.empty
   Mult -> Data.Set.empty
   IfElse b e1 e2 -> freeVars b `Data.Set.union` freeVars e1 `Data.Set.union` freeVars e2
+  CaseOf e ps -> Data.Set.unions (freeVars e: map (\(p,x) -> freeVars x `Data.Set.difference` freeVars p) ps)
+  Constructor _ -> Data.Set.empty
