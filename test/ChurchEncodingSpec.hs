@@ -22,6 +22,11 @@ testProgramOutput path result = do
     execTyped p `shouldBe` show result
     exec p `shouldBe` result
 
+testProgramOutputUnlifted path result = do
+  p <- parse <$> (runIO $ readFile path)
+  it path $ do
+    execTyped p `shouldBe` result
+
 testExpType eCode t = do
   let e = parseE eCode
 --  runIO $ putStrLn $ show $ inferType e empty
@@ -74,6 +79,8 @@ main = do
       testProgramOutput "programs/adt3.hs" (2::Integer)
       testProgramOutput "programs/adt4.hs" [8,1::Integer,2]
       testProgramOutput "programs/preorder.hs" [11,2::Integer, 7]
+      -- This takes 1 hour on my laptop but passes
+      -- testProgramOutputUnlifted "programs/lambda.hs" "3"
 
     describe "unify" $ do
 

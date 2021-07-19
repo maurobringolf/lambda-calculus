@@ -1,0 +1,1 @@
+(λm.λn.λS.λZ.m S (n S Z)) (λS.λZ.S Z) (λS.λZ.S (S Z))

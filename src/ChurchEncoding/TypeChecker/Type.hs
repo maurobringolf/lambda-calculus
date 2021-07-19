@@ -53,3 +53,7 @@ ftv (ADT _) = Data.Set.empty
 getArgs :: Type -> [Type]
 getArgs (TFun t1 t2) = t1 : getArgs t2
 getArgs _ = []
+
+getResult :: Type -> Type
+getResult (TFun t1 t2) = getResult t2
+getResult t = t

@@ -6,29 +6,51 @@ import Data.FileEmbed
 import Data.ByteString.Char8(unpack)
 
 import Data.List(find, intercalate)
+import qualified Data.Map
 import qualified Data.Set
+
+import Data.Char(isUpper)
+
+import Data.Maybe(fromJust)
 
 import qualified ChurchEncoding.Ast as SS
 import qualified ChurchEncoding.Parser
-import ChurchEncoding.TypeChecker.TypeChecker(getMainType, inferConsType)
-import ChurchEncoding.TypeChecker.Type(Type(..), getArgs)
+import ChurchEncoding.TypeChecker.TypeChecker(getMainType, inferConsType, typeCheck)
+import ChurchEncoding.TypeChecker.Type(Type(..), getArgs, getResult)
+import ChurchEncoding.TypeChecker.TypeContext(TypeContext)
 import Ast
 import Parser
 import qualified Interpreter
 
 
+-- TODO remove duplication called by this function
 execTyped :: SS.Program -> String
 execTyped p = let p' = appendProgram stdLib p
+                  ctx = typeCheck p'
                   t = getMainType p'
                   res = Interpreter.lazyEval $ compileMain p
                in
-                 absT t res
+                 absT ctx t res
 
-absT :: Type -> Term -> String
-absT TInt te = show $ (absLC::Term -> Integer) $ te
-absT TBool te = show $ (absLC::Term -> Bool) $ te
-absT (TList t) te = "[" ++ intercalate "," (map (absT t) . (absLC::Term -> [Term]) $ te) ++ "]"
-absT (TVar _) te = show te
+absT :: TypeContext -> Type -> Term -> String
+absT ctx TInt te = show $ (absLC::Term -> Integer) $ te
+absT ctx TBool te = show $ (absLC::Term -> Bool) $ te
+absT ctx (TList t) te = "[" ++ intercalate "," (map (absT ctx t) . (absLC::Term -> [Term]) $ te) ++ "]"
+absT ctx (TVar _) te = show te
+absT ctx (ADT adt) te = let conss = findConsTypesOfADT ctx adt
+                            consedTe = Interpreter.lazyEval $ foldl App te (map (Var . fst) conss)
+                            teCons = getHeadSymbol consedTe
+                            -- TODO handle Nothing case if possible
+                            argTypes = getArgs $ fromJust $ lookup teCons conss
+                            args = getArgTerms consedTe
+                            argsS = map (\(a,t) -> absT ctx t a) (zip args argTypes)
+                         in
+                          -- TODO clean up parenthesis logic
+                          (if length args > 0 then "(" else "") ++ teCons ++ " " ++ intercalate " " argsS ++ (if length args > 0 then ")" else "")
+                          
+
+findConsTypesOfADT :: TypeContext -> String -> [(String, Type)]
+findConsTypesOfADT ctx adt = Data.Map.toAscList $ Data.Map.filterWithKey (\c t -> not (null c) && isUpper (head c) && getResult t == ADT adt) ctx
 
 eval :: RepresentableLC a => SS.Exp -> a
 eval = absLC . Interpreter.lazyEval . compile

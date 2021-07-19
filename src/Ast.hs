@@ -45,3 +45,12 @@ freeVars (Abs x t) = delete x (freeVars t)
 fresh :: Set Variable -> Variable
 fresh xs = if Data.Set.null xs then "x" else findMax xs ++ "0"
 
+getHeadSymbol :: Term -> Variable
+getHeadSymbol t = case t of
+  Var z -> z
+  (App t1 t2) -> getHeadSymbol t1
+
+getArgTerms :: Term -> [Term]
+getArgTerms (App (Var x) t2) = [t2]
+getArgTerms (App t1 t2) = getArgTerms t1 ++ [t2]
+getArgTerms t = [t]

@@ -1,9 +1,5 @@
 data Tree = Node Int Tree Tree | Leaf
 
-concat xs ys = if length xs == 0 then
-                 ys
-               else
-                 (head xs) : concat (tail xs) ys
 
 preorder t = case t of
   Leaf -> [];
