@@ -36,8 +36,8 @@ Of course everything is terribly slow and utterly impractical, **BUT** compiling
 	(λx1.λx2.λAbs.λApp.λVar.App x1 x2))
 	(λx1.λx2.λAbs.λApp.λVar.Abs x1 x2)
 ```
-
-Now this is clearly glorious and totally worth the effort.
+Which is ultimately what I was most curious about with this project.
+Running the above through the Haskell interpreter computes [`1 + 2 = 3`](https://github.com/maurobringolf/lambda-calculus/blob/master/programs/lambda.hs) in about one hour on my old laptop.
 
 ## Example
 
