@@ -27,7 +27,7 @@ version :: Parser (a -> a)
 version = infoOption "v1.0.0" (long "version" <> short 'v' <> help "Print version and exit.")
 
 eagerParser :: Parser EvaluationStrategy
-eagerParser = flag Lazy Eager (long "eager" <> short 'e' <> help "Use eager evaluation strategy instead of lazy (does not apply for --haskell).")
+eagerParser = flag lazyStrategy Eager (long "eager" <> short 'e' <> help "Use eager evaluation strategy instead of lazy (does not apply for --haskell).")
 
 compileOnlyParser :: Parser Bool
 compileOnlyParser = switch (long "compileOnly" <> short 'c' <> help "Do not run the program, but print the lambda term to stdout.")

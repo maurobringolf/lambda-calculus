@@ -23,11 +23,11 @@ eagerEval (App t1 t2) = let t2' = eagerEval t2 in case eagerEval t1 of
 eagerEval (Abs x t) = Abs x (eagerEval t)
 eagerEval v = v
 
--- TODO: Lazy = Lazy [], I dont like this. Make representation unique
-data EvaluationStrategy = Lazy | Eager | LazyWithInterpretedSymbols [String]
+data EvaluationStrategy = Eager | LazyWithInterpretedSymbols [String]
+
+lazyStrategy = LazyWithInterpretedSymbols []
 
 eval :: EvaluationStrategy -> Term -> Term
 eval s = case s of
   Eager -> eagerEval
-  Lazy -> lazyEval
   LazyWithInterpretedSymbols ss -> lazyEvalInterp ss
