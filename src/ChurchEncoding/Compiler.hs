@@ -13,6 +13,8 @@ import Data.Char(isUpper)
 
 import Data.Maybe(fromJust)
 
+import Text.Printf(printf)
+
 import qualified ChurchEncoding.Ast as SS
 import qualified ChurchEncoding.Parser
 import ChurchEncoding.TypeChecker.TypeChecker(getMainType, inferConsType, typeCheck)
@@ -33,10 +35,10 @@ execTyped p = let p' = appendProgram stdLib p
                  absT ctx t res
 
 absT :: TypeContext -> Type -> Term -> String
-absT ctx TInt te = show $ (absLC::Term -> Integer) $ te
-absT ctx TBool te = show $ (absLC::Term -> Bool) $ te
+absT _ TInt te = show $ (absLC::Term -> Integer) $ te
+absT _ TBool te = show $ (absLC::Term -> Bool) $ te
 absT ctx (TList t) te = "[" ++ intercalate "," (map (absT ctx t) . (absLC::Term -> [Term]) $ te) ++ "]"
-absT ctx (TVar _) te = show te
+absT _ (TVar _) te = show te
 absT ctx (ADT adt) te = let conss = findConsTypesOfADT ctx adt
                             consedTe = Interpreter.lazyEval $ foldl App te (map (Var . fst) conss)
                             teCons = getHeadSymbol consedTe
@@ -47,6 +49,7 @@ absT ctx (ADT adt) te = let conss = findConsTypesOfADT ctx adt
                          in
                           -- TODO clean up parenthesis logic
                           (if length args > 0 then "(" else "") ++ teCons ++ " " ++ intercalate " " argsS ++ (if length args > 0 then ")" else "")
+absT _ ty te = error $ printf "Cannot abstract value: %s of type %s" (show te) (show ty)
                           
 
 findConsTypesOfADT :: TypeContext -> String -> [(String, Type)]
@@ -82,12 +85,12 @@ buildMain' :: [SS.FunDef] -> SS.Exp
 buildMain' fs = buildMain (SS.P fs [])
 
 buildMain :: SS.Program -> SS.Exp
-buildMain (SS.P defs dataDefs) = let ds = map desugarRecursion defs
-                                     main = case find ((== "main") . fst) ds of
-                                              Just ("main", e) -> e
-                                              Nothing -> error "No main function given."
-                                  in
-                                     foldr (\(f,e) m -> SS.App (SS.Abs f m) e) main (filter ((/= "main") . fst) ds)
+buildMain (SS.P defs _) = let ds = map desugarRecursion defs
+                              main = case find ((== "main") . fst) ds of
+                                  Just (_, e) -> e
+                                  Nothing -> error "No main function given."
+                          in
+                             foldr (\(f,e) m -> SS.App (SS.Abs f m) e) main (filter ((/= "main") . fst) ds)
 
 desugarRecursion :: SS.FunDef -> (String, SS.Exp)
 desugarRecursion (SS.Def f e) = (f, if f `Data.Set.notMember` SS.freeVars e then e else SS.App y (SS.Abs f e))
@@ -98,7 +101,7 @@ y = SS.Abs "f" (SS.App (SS.Abs "x" (SS.App (SS.Var "f") (SS.App (SS.Var "x") (SS
 compile :: SS.Exp -> Term
 compile e = case e of
   (SS.Var x) -> Var x
-  (SS.Abs x e) -> Abs x $ compile e
+  (SS.Abs x e1) -> Abs x $ compile e1
   (SS.App e1 e2) -> App (compile e1) (compile e2)
 
   (SS.Numeral n) -> repLC n
@@ -120,10 +123,10 @@ compile e = case e of
   SS.Tail -> parse "(λl.λc.λn.l (λh.λt.λg.g h (t c)) (λt.n) (λh.λt.t))"
 
   (SS.Constructor cons) -> Var cons
-  (SS.CaseOf e ps) -> let te = compile e
-                          tps = map (\(p,e) -> foldr Abs (compile e) (SS.getPatternVars p)) ps
+  (SS.CaseOf e1 ps) -> let te1 = compile e1
+                           tps = map (\(p,e') -> foldr Abs (compile e') (SS.getPatternVars p)) ps
                        in
-                        foldl App te tps
+                        foldl App te1 tps
 
 churchCons :: Term
 churchCons = parse churchCons'

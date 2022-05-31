@@ -27,9 +27,9 @@ instance Show Term where
 
 
 subst :: Variable -> Term -> Term -> Term
-subst x (Var y) t
-  | x == y = t
-  | x /= y = Var y
+subst x (Var y) t = case x == y of
+  True -> t
+  False -> Var y
 subst x (App s1 s2) t = App (subst x s1 t) (subst x s2 t)
 subst x (Abs y s) t
   | x == y = Abs y s
@@ -48,9 +48,10 @@ fresh xs = if Data.Set.null xs then "x" else findMax xs ++ "0"
 getHeadSymbol :: Term -> Variable
 getHeadSymbol t = case t of
   Var z -> z
-  (App t1 t2) -> getHeadSymbol t1
+  (App t1 _) -> getHeadSymbol t1
+  (Abs _ _) -> error "getHeadSymbol of (Abs _ _)"
 
 getArgTerms :: Term -> [Term]
-getArgTerms (App (Var x) t2) = [t2]
+getArgTerms (App (Var _) t2) = [t2]
 getArgTerms (App t1 t2) = getArgTerms t1 ++ [t2]
 getArgTerms t = [t]

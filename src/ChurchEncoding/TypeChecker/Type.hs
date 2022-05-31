@@ -17,7 +17,7 @@ equalsUpToRenaming t1 t2 = case equalsWithRenameLeft t1 t2 Data.Map.empty of
     Just _ -> True
 
 equalsWithRenameLeft :: Type -> Type -> Data.Map.Map Int Int -> Maybe (Data.Map.Map Int Int)
-equalsWithRenameLeft t1 t2 r = case (t1,t2) of
+equalsWithRenameLeft t t' r = case (t,t') of
   (TInt,TInt) -> Just r
   (TBool,TBool) -> Just r
   (ADT n, ADT m) -> if n == m then Just r else Nothing
@@ -37,7 +37,7 @@ instance Show Type where
   show TInt = "Int"
   show TBool = "Bool"
   show (TList t) = "[" ++ show t ++ "]"
-  show (TFun f@(TFun t1 t2) t3) = "(" ++ show f ++ ") -> " ++ show t3
+  show (TFun f@(TFun _ _) t3) = "(" ++ show f ++ ") -> " ++ show t3
   show (TFun t1 t2) = show t1 ++ " -> " ++ show t2
   show (TVar i) = "τ" ++ show i
   show (ADT n) = n
@@ -55,5 +55,5 @@ getArgs (TFun t1 t2) = t1 : getArgs t2
 getArgs _ = []
 
 getResult :: Type -> Type
-getResult (TFun t1 t2) = getResult t2
+getResult (TFun _ t2) = getResult t2
 getResult t = t

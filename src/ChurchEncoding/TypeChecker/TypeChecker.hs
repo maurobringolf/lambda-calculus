@@ -17,14 +17,14 @@ getMainType p = case Data.Map.lookup "main" (typeCheck p) of
                   Just t -> t
 
 typeCheck :: Program -> TypeContext
-typeCheck (P funDefs dataDefs) = runWithTypeContext (do
+typeCheck (P funDefs dDefs) = runWithTypeContext (do
   forM_ funDefs $ \(Def d e) -> do
     ctx <- getCtx
     insertCtx d (inferTypeNamed d e ctx)
-  getCtx) (foldr insertConsTypes (Data.Map.singleton "undefined" $ TVar 0) dataDefs)
+  getCtx) (foldr insertConsTypes (Data.Map.singleton "undefined" $ TVar 0) dDefs)
 
 insertConsTypes :: DataDef -> TypeContext -> TypeContext
-insertConsTypes (DDef n conss) ctx = foldr (\cons ctx -> (Data.Map.insert (getConsName cons) (inferConsType n cons) ctx)) ctx conss
+insertConsTypes (DDef n conss) ctx = foldr (\cons ctx' -> (Data.Map.insert (getConsName cons) (inferConsType n cons) ctx')) ctx conss
 
 inferConsType :: String -> Exp -> Type
 inferConsType adt cons = foldr (\x c -> TFun x c) (ADT adt) (go cons)
@@ -46,8 +46,8 @@ inferTypeNamed n e = runWithTypeContext $ do
   a <- freshTVar
   withShadow n a $ do
     eqs <- buildEqs e a
-    let s = unifyAll eqs
-    return $ case s of
+    let sub = unifyAll eqs
+    return $ case sub of
       Right s -> apply s a
       Left r -> error $ show r
 
@@ -55,8 +55,8 @@ inferType :: Exp -> TypeContext -> Type
 inferType e = runWithTypeContext $ do
   a <- freshTVar
   eqs <- buildEqs e a
-  let s = unifyAll eqs
-  return $ case s of
+  let sub = unifyAll eqs
+  return $ case sub of
     Right s -> apply s a
     Left r -> error $ show r
 
@@ -100,13 +100,13 @@ buildEqs Eq t = return $ Data.Set.singleton $ TEQ t (TFun TInt (TFun TInt TBool)
 buildEqs Leq t = return $ Data.Set.singleton $ TEQ t (TFun TInt (TFun TInt TBool))
 buildEqs Geq t = return $ Data.Set.singleton $ TEQ t (TFun TInt (TFun TInt TBool))
 -- TODO add typechecking for patterns and 'e'
-buildEqs (CaseOf e ps) t = Data.Set.unions <$> (forM ps $ \(p,x) -> do
+buildEqs (CaseOf _ ps) t = Data.Set.unions <$> (forM ps $ \(p,x) -> do
                                                   let vars = getPatternVars p
                                                       cons = getConsName p
                                                   ctx <- getCtx
                                                   let consT = case Data.Map.lookup cons ctx of
                                                                 Nothing -> error $ "Unknown constructor " ++ cons ++ " in pattern."
-                                                                Just consT -> consT
+                                                                Just c -> c
                                                       argTypes = getArgs consT
 
                                                   if length argTypes /= length vars then
@@ -117,8 +117,6 @@ buildEqs (Constructor cons) t' = do ctx <- getCtx
                                     return $ case Data.Map.lookup cons ctx of
                                       Nothing -> error $ "Constructor " ++ cons ++ " not in scope."
                                       Just t -> Data.Set.singleton $ TEQ t t'
-buildEqs e _ = error $ show e
-
 
 binaryOpType :: Type -> Type
 binaryOpType t = TFun t (TFun t t)
@@ -143,7 +141,7 @@ apply _ TInt = TInt
 apply _ TBool = TBool
 apply s (TList t) = TList (apply s t)
 apply s (TFun t1 t2) = TFun (apply s t1) (apply s t2)
-apply s (ADT n) = ADT n
+apply _ (ADT n) = ADT n
 
 compose :: Substitution -> Substitution -> Substitution
 compose s1 s2 = (Data.Map.filterWithKey (\i t -> case t of TVar j -> i /= j; _ -> True)) $ Data.Map.map (apply s1) s2 `Data.Map.union` s1

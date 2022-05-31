@@ -28,7 +28,8 @@ data Exp = Var String
 getConsName :: Exp -> String
 getConsName cons = case cons of
   (Constructor c) -> c
-  (App lhs rhs) -> getConsName lhs
+  (App lhs _) -> getConsName lhs
+  _ -> error "getConsName of non constructor term"
 
 data FunDef = Def String Exp
   deriving (Eq)
@@ -42,7 +43,7 @@ data Program = P { funsDefs :: [FunDef]
 
 -- TODO show dataDefs
 instance Show Program where
-  show (P funDefs dataDefs) = intercalate "\n" $ map show funDefs
+  show (P funDefs _) = intercalate "\n" $ map show funDefs
 
 instance Show FunDef where
   show (Def name body) = name ++ " = " ++ show body
@@ -52,6 +53,8 @@ getPatternVars p = case p of
   (Var x) -> [x];
   App p1 p2 -> getPatternVars p1 ++ getPatternVars p2
   Constructor _ -> []
+  -- TODO: Add separate data type for patterns
+  _ -> error "getPatternVars of non-pattern expression"
 
 freeVars :: Exp -> Data.Set.Set String
 freeVars e = case e of
@@ -73,5 +76,5 @@ freeVars e = case e of
   Geq -> Data.Set.empty
   Mult -> Data.Set.empty
   IfElse b e1 e2 -> freeVars b `Data.Set.union` freeVars e1 `Data.Set.union` freeVars e2
-  CaseOf e ps -> Data.Set.unions (freeVars e: map (\(p,x) -> freeVars x `Data.Set.difference` freeVars p) ps)
+  CaseOf e1 ps -> Data.Set.unions (freeVars e1: map (\(p,x) -> freeVars x `Data.Set.difference` freeVars p) ps)
   Constructor _ -> Data.Set.empty

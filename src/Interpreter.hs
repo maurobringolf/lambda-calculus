@@ -1,8 +1,6 @@
 module Interpreter where
 
-import Data.Set
 import Ast
-import Parser
 
 lazyEvalInterp :: [Variable] -> Term -> Term
 lazyEvalInterp fs (App t1 t2) = case lazyEvalInterp fs t1 of
@@ -11,7 +9,7 @@ lazyEvalInterp fs (App t1 t2) = case lazyEvalInterp fs t1 of
              --else App t1 t2
              else App (Var f) t2
   t1'         -> App t1' t2
-lazyEvalInterp fs t = t
+lazyEvalInterp _ t = t
 
 lazyEval :: Term -> Term
 lazyEval = lazyEvalInterp []
@@ -25,6 +23,7 @@ eagerEval v = v
 
 data EvaluationStrategy = Eager | LazyWithInterpretedSymbols [String]
 
+lazyStrategy :: EvaluationStrategy
 lazyStrategy = LazyWithInterpretedSymbols []
 
 eval :: EvaluationStrategy -> Term -> Term
